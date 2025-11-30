@@ -20,10 +20,25 @@ function copyToClipboard() {
     <div class="bg-gray-900 rounded-xl shadow-2xl border border-gray-700 w-full max-w-4xl max-h-[90vh] flex flex-col">
       <!-- Header -->
       <div class="flex items-center justify-between p-4 border-b border-gray-700">
-        <h2 class="text-lg font-semibold text-white flex items-center gap-2">
-          <Icon icon="code-tags" size="24" class="text-indigo-400" />
-          Generated YAML
-        </h2>
+        <div class="flex items-center gap-4">
+          <h2 class="text-lg font-semibold text-white flex items-center gap-2">
+            <Icon icon="code-tags" size="24" class="text-indigo-400" />
+            Generated YAML
+          </h2>
+          
+          <!-- Export options (only show if multiple canvas tabs exist) -->
+          <div v-if="store.canvasTabs.length > 1" class="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              id="export-all-canvases"
+              v-model="store.exportAllCanvases"
+              class="rounded border-gray-600 text-indigo-600 bg-gray-800 focus:ring-2 focus:ring-indigo-500"
+            />
+            <label for="export-all-canvases" class="text-gray-300 cursor-pointer">
+              Export all {{ store.canvasTabs.length }} canvases
+            </label>
+          </div>
+        </div>
         <button
           @click="store.showYamlModal = false"
           class="p-1 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"

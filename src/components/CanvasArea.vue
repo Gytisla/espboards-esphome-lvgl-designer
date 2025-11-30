@@ -3,8 +3,57 @@ import { ref } from 'vue'
 import { useDesignerStore } from '../stores/designer'
 import type { Widget } from '../types/widget'
 import WidgetRenderer from './WidgetRenderer.vue'
+import Icon from './Icon.vue'
 
 const store = useDesignerStore()
+
+// Tab renaming
+const renamingTabId = ref<string | null>(null)
+const renamingTabName = ref('')
+
+function startRenameTab(tabId: string, currentName: string) {
+  renamingTabId.value = tabId
+  renamingTabName.value = currentName
+}
+
+function finishRenameTab() {
+  if (renamingTabId.value && renamingTabName.value.trim()) {
+    store.renameCanvasTab(renamingTabId.value, renamingTabName.value.trim())
+  }
+  renamingTabId.value = null
+  renamingTabName.value = ''
+}
+
+function cancelRenameTab() {
+  renamingTabId.value = null
+  renamingTabName.value = ''
+}
+
+// Tab closing confirmation
+const showCloseConfirmation = ref(false)
+const tabToClose = ref<string | null>(null)
+const tabToCloseName = ref('')
+
+function requestCloseTab(tabId: string, tabName: string) {
+  tabToClose.value = tabId
+  tabToCloseName.value = tabName
+  showCloseConfirmation.value = true
+}
+
+function confirmCloseTab() {
+  if (tabToClose.value) {
+    store.removeCanvasTab(tabToClose.value)
+  }
+  showCloseConfirmation.value = false
+  tabToClose.value = null
+  tabToCloseName.value = ''
+}
+
+function cancelCloseTab() {
+  showCloseConfirmation.value = false
+  tabToClose.value = null
+  tabToCloseName.value = ''
+}
 
 const resolutions = [
   '128x64',
@@ -401,6 +450,64 @@ function getWidgetStyle(widget: Widget) {
 
 <template>
   <div class="h-full flex flex-col bg-gray-800">
+    <!-- Canvas Tabs Bar -->
+    <div class="shrink-0 bg-gray-900 border-b border-gray-700 flex items-center">
+      <div class="flex-1 flex items-center overflow-x-auto">
+        <div
+          v-for="tab in store.canvasTabs"
+          :key="tab.id"
+          @click="store.switchCanvasTab(tab.id)"
+          :class="[
+            'group relative flex items-center gap-2 px-4 py-2 text-sm border-r border-gray-700 cursor-pointer transition-colors min-w-0',
+            store.activeCanvasTabId === tab.id
+              ? 'bg-gray-800 text-indigo-400 font-medium'
+              : 'text-gray-400 hover:text-gray-300 hover:bg-gray-850'
+          ]"
+        >
+          <Icon icon="web" size="16" class="shrink-0" />
+          
+          <!-- Tab name (editable) -->
+          <input
+            v-if="renamingTabId === tab.id"
+            v-model="renamingTabName"
+            @blur="finishRenameTab"
+            @keydown.enter="finishRenameTab"
+            @keydown.esc="cancelRenameTab"
+            @click.stop
+            class="flex-1 min-w-0 px-1 py-0.5 bg-gray-700 text-white text-sm border border-indigo-500 rounded focus:outline-none"
+            autofocus
+          />
+          <span
+            v-else
+            @dblclick.stop="startRenameTab(tab.id, tab.name)"
+            class="flex-1 min-w-0 truncate"
+            :title="tab.name"
+          >
+            {{ tab.name }}
+          </span>
+          
+          <!-- Close button (hidden for single tab) -->
+          <button
+            v-if="store.canvasTabs.length > 1"
+            @click.stop="requestCloseTab(tab.id, tab.name)"
+            class="shrink-0 opacity-0 group-hover:opacity-100 p-0.5 hover:bg-red-900/20 hover:text-red-400 rounded transition-all"
+            title="Close tab"
+          >
+            <Icon icon="close" size="14" />
+          </button>
+        </div>
+      </div>
+      
+      <!-- Add new tab button -->
+      <button
+        @click="store.addCanvasTab()"
+        class="shrink-0 px-3 py-2 text-gray-400 hover:text-indigo-400 hover:bg-gray-850 border-l border-gray-700 transition-colors"
+        title="Add new canvas tab"
+      >
+        <Icon icon="plus" size="16" />
+      </button>
+    </div>
+
     <!-- Canvas Toolbar -->
     <div class="shrink-0 bg-gray-900 border-b border-gray-700 px-4 py-2 flex items-center justify-between">
       <h2 class="text-sm font-semibold text-gray-200 uppercase tracking-wider">Canvas</h2>
@@ -488,6 +595,53 @@ function getWidgetStyle(widget: Widget) {
             style="transform: translate(50%, 50%)"
             title="Drag to resize"
           ></div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Close Tab Confirmation Modal -->
+    <div
+      v-if="showCloseConfirmation"
+      class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      @click.self="cancelCloseTab"
+    >
+      <div class="bg-gray-900 rounded-xl shadow-2xl border border-gray-700 w-full max-w-md">
+        <!-- Header -->
+        <div class="flex items-center gap-3 p-4 border-b border-gray-700">
+          <div class="shrink-0 w-10 h-10 rounded-full bg-red-900/20 flex items-center justify-center">
+            <Icon icon="warning" size="24" class="text-red-400" />
+          </div>
+          <div class="flex-1">
+            <h2 class="text-lg font-semibold text-white">Close Canvas Tab?</h2>
+            <p class="text-sm text-gray-400">This action cannot be undone</p>
+          </div>
+        </div>
+
+        <!-- Content -->
+        <div class="p-4">
+          <p class="text-gray-300 mb-2">
+            Are you sure you want to close <span class="font-semibold text-indigo-400">"{{ tabToCloseName }}"</span>?
+          </p>
+          <p class="text-sm text-gray-400">
+            All widgets in this canvas will be permanently deleted.
+          </p>
+        </div>
+
+        <!-- Footer -->
+        <div class="flex items-center justify-end gap-2 p-4 border-t border-gray-700">
+          <button
+            @click="cancelCloseTab"
+            class="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            @click="confirmCloseTab"
+            class="px-4 py-2 text-sm font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+          >
+            <Icon icon="delete" size="16" />
+            Close Tab
+          </button>
         </div>
       </div>
     </div>

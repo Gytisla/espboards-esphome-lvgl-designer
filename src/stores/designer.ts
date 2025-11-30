@@ -6,16 +6,87 @@ import yaml from 'js-yaml'
 
 const STORAGE_KEY = 'lvglDesignerState'
 
+export interface CanvasTab {
+  id: string
+  name: string
+  widgets: Widget[]
+  canvasWidth: number
+  canvasHeight: number
+  canvasResolution: string
+}
+
 export const useDesignerStore = defineStore('designer', () => {
-  // State
-  const widgets = ref<Widget[]>([])
+  // Canvas tabs state
+  const canvasTabs = ref<CanvasTab[]>([
+    {
+      id: 'canvas_1',
+      name: 'Screen 1',
+      widgets: [],
+      canvasWidth: 320,
+      canvasHeight: 240,
+      canvasResolution: '320x240'
+    }
+  ])
+  const activeCanvasTabId = ref('canvas_1')
+  const nextCanvasId = ref(2)
+  
+  // Legacy state - now computed from active canvas tab
+  const widgets = computed({
+    get: () => {
+      const activeTab = canvasTabs.value.find(tab => tab.id === activeCanvasTabId.value)
+      return activeTab ? activeTab.widgets : []
+    },
+    set: (newWidgets: Widget[]) => {
+      const activeTab = canvasTabs.value.find(tab => tab.id === activeCanvasTabId.value)
+      if (activeTab) {
+        activeTab.widgets = newWidgets
+      }
+    }
+  })
+  
   const selectedWidgetId = ref<string | null>(null)
   const nextWidgetId = ref(0)
   
-  // Canvas settings
-  const canvasResolution = ref('320x240')
-  const canvasWidth = ref(320)
-  const canvasHeight = ref(240)
+  // Canvas settings - now computed from active canvas tab
+  const canvasResolution = computed({
+    get: () => {
+      const activeTab = canvasTabs.value.find(tab => tab.id === activeCanvasTabId.value)
+      return activeTab ? activeTab.canvasResolution : '320x240'
+    },
+    set: (value: string) => {
+      const activeTab = canvasTabs.value.find(tab => tab.id === activeCanvasTabId.value)
+      if (activeTab) {
+        activeTab.canvasResolution = value
+      }
+    }
+  })
+  
+  const canvasWidth = computed({
+    get: () => {
+      const activeTab = canvasTabs.value.find(tab => tab.id === activeCanvasTabId.value)
+      return activeTab ? activeTab.canvasWidth : 320
+    },
+    set: (value: number) => {
+      const activeTab = canvasTabs.value.find(tab => tab.id === activeCanvasTabId.value)
+      if (activeTab) {
+        activeTab.canvasWidth = value
+      }
+    }
+  })
+  
+  const canvasHeight = computed({
+    get: () => {
+      const activeTab = canvasTabs.value.find(tab => tab.id === activeCanvasTabId.value)
+      return activeTab ? activeTab.canvasHeight : 240
+    },
+    set: (value: number) => {
+      const activeTab = canvasTabs.value.find(tab => tab.id === activeCanvasTabId.value)
+      if (activeTab) {
+        activeTab.canvasHeight = value
+      }
+    }
+  })
+  
   const currentScale = ref(2)
   
   // UI state
@@ -24,6 +95,7 @@ export const useDesignerStore = defineStore('designer', () => {
   const showImportModal = ref(false)
   const showShortcutsModal = ref(false)
   const showPreviewModal = ref(false)
+  const exportAllCanvases = ref(false) // Export all canvas tabs or just active one
   
   // Drag state
   const draggedWidgetType = ref<WidgetType | null>(null)
@@ -340,18 +412,40 @@ export const useDesignerStore = defineStore('designer', () => {
   }
   
   function generateYAML(): string {
-    let yamlString = 'lvgl:\n  pages:\n    - id: main_page\n      widgets:'
-    
-    if (widgets.value.length === 0) {
-      yamlString += '\n        # No widgets placed yet'
-    } else {
-      widgets.value.forEach((widget) => {
-        yamlString += '\n'
-        yamlString += generateNestedWidgetYAML(widget, '        ')
+    if (exportAllCanvases.value && canvasTabs.value.length > 1) {
+      // Export all canvas tabs as separate pages
+      let yamlString = 'lvgl:\n  pages:'
+      
+      canvasTabs.value.forEach((tab, index) => {
+        const pageId = tab.name.toLowerCase().replace(/[^a-z0-9_]/g, '_')
+        yamlString += `\n    - id: ${pageId || `page_${index + 1}`}\n      widgets:`
+        
+        if (tab.widgets.length === 0) {
+          yamlString += '\n        # No widgets placed yet'
+        } else {
+          tab.widgets.forEach((widget) => {
+            yamlString += '\n'
+            yamlString += generateNestedWidgetYAML(widget, '        ')
+          })
+        }
       })
+      
+      return yamlString
+    } else {
+      // Export only active canvas tab
+      let yamlString = 'lvgl:\n  pages:\n    - id: main_page\n      widgets:'
+      
+      if (widgets.value.length === 0) {
+        yamlString += '\n        # No widgets placed yet'
+      } else {
+        widgets.value.forEach((widget) => {
+          yamlString += '\n'
+          yamlString += generateNestedWidgetYAML(widget, '        ')
+        })
+      }
+      
+      return yamlString
     }
-    
-    return yamlString
   }
   
   async function copyYAML(): Promise<boolean> {
@@ -410,11 +504,67 @@ export const useDesignerStore = defineStore('designer', () => {
     }
   }
   
+  // Canvas Tab Management
+  function addCanvasTab(name?: string) {
+    const newId = `canvas_${nextCanvasId.value++}`
+    const newTab: CanvasTab = {
+      id: newId,
+      name: name || `Screen ${nextCanvasId.value - 1}`,
+      widgets: [],
+      canvasWidth: 320,
+      canvasHeight: 240,
+      canvasResolution: '320x240'
+    }
+    canvasTabs.value.push(newTab)
+    activeCanvasTabId.value = newId
+    selectedWidgetId.value = null
+    saveState()
+  }
+  
+  function removeCanvasTab(tabId: string) {
+    if (canvasTabs.value.length <= 1) {
+      return // Don't remove the last tab
+    }
+    
+    const index = canvasTabs.value.findIndex(tab => tab.id === tabId)
+    if (index === -1) return
+    
+    canvasTabs.value.splice(index, 1)
+    
+    // Switch to another tab if we removed the active one
+    if (activeCanvasTabId.value === tabId) {
+      const newIndex = Math.max(0, index - 1)
+      const newTab = canvasTabs.value[newIndex]
+      if (newTab) {
+        activeCanvasTabId.value = newTab.id
+        selectedWidgetId.value = null
+      }
+    }
+    
+    saveState()
+  }
+  
+  function switchCanvasTab(tabId: string) {
+    if (canvasTabs.value.some(tab => tab.id === tabId)) {
+      activeCanvasTabId.value = tabId
+      selectedWidgetId.value = null
+    }
+  }
+  
+  function renameCanvasTab(tabId: string, newName: string) {
+    const tab = canvasTabs.value.find(tab => tab.id === tabId)
+    if (tab) {
+      tab.name = newName
+      saveState()
+    }
+  }
+  
   // LocalStorage
   function saveState() {
     const state = {
-      widgets: widgets.value,
-      resolution: canvasResolution.value,
+      canvasTabs: canvasTabs.value,
+      activeCanvasTabId: activeCanvasTabId.value,
+      nextCanvasId: nextCanvasId.value,
       scale: currentScale.value,
       nextWidgetId: nextWidgetId.value,
       isToolboxVisible: isToolboxVisible.value
@@ -427,8 +577,26 @@ export const useDesignerStore = defineStore('designer', () => {
       const saved = localStorage.getItem(STORAGE_KEY)
       if (saved) {
         const state = JSON.parse(saved)
-        widgets.value = state.widgets || []
-        canvasResolution.value = state.resolution || '320x240'
+        
+        // Load canvas tabs if available
+        if (state.canvasTabs) {
+          canvasTabs.value = state.canvasTabs
+          activeCanvasTabId.value = state.activeCanvasTabId || canvasTabs.value[0]?.id || 'canvas_1'
+          nextCanvasId.value = state.nextCanvasId || 2
+        } else {
+          // Legacy: migrate old single-canvas data to first tab
+          canvasTabs.value = [{
+            id: 'canvas_1',
+            name: 'Screen 1',
+            widgets: state.widgets || [],
+            canvasWidth: 320,
+            canvasHeight: 240,
+            canvasResolution: state.resolution || '320x240'
+          }]
+          activeCanvasTabId.value = 'canvas_1'
+          nextCanvasId.value = 2
+        }
+        
         currentScale.value = state.scale || 2
         nextWidgetId.value = state.nextWidgetId || 0
         isToolboxVisible.value = state.isToolboxVisible !== false
@@ -441,6 +609,8 @@ export const useDesignerStore = defineStore('designer', () => {
   
   return {
     // State
+    canvasTabs,
+    activeCanvasTabId,
     widgets,
     selectedWidgetId,
     canvasResolution,
@@ -452,6 +622,7 @@ export const useDesignerStore = defineStore('designer', () => {
     showImportModal,
     showShortcutsModal,
     showPreviewModal,
+    exportAllCanvases,
     draggedWidgetType,
     isDraggingWidget,
     dragOffsetX,
@@ -475,6 +646,10 @@ export const useDesignerStore = defineStore('designer', () => {
     generateYAML,
     copyYAML,
     importYAML,
+    addCanvasTab,
+    removeCanvasTab,
+    switchCanvasTab,
+    renameCanvasTab,
     saveState,
     loadState
   }
