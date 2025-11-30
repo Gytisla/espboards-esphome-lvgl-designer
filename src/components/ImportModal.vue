@@ -1,0 +1,83 @@
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useDesignerStore } from '../stores/designer'
+import Icon from './Icon.vue'
+
+const store = useDesignerStore()
+const yamlInput = ref('')
+const errorMessage = ref('')
+
+function handleImport() {
+  errorMessage.value = ''
+  try {
+    store.importYAML(yamlInput.value)
+    store.showImportModal = false
+    yamlInput.value = ''
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : 'Failed to import YAML'
+  }
+}
+
+function handleClose() {
+  store.showImportModal = false
+  yamlInput.value = ''
+  errorMessage.value = ''
+}
+</script>
+
+<template>
+  <div
+    v-if="store.showImportModal"
+    class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+    @click.self="handleClose"
+  >
+    <div class="bg-gray-900 rounded-xl shadow-2xl border border-gray-700 w-full max-w-4xl max-h-[90vh] flex flex-col">
+      <!-- Header -->
+      <div class="flex items-center justify-between p-4 border-b border-gray-700">
+        <h2 class="text-lg font-semibold text-white flex items-center gap-2">
+          <Icon icon="file-upload" size="24" class="text-indigo-400" />
+          Import YAML
+        </h2>
+        <button
+          @click="handleClose"
+          class="p-1 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+        >
+          <Icon icon="close" size="24" />
+        </button>
+      </div>
+
+      <!-- Content -->
+      <div class="flex-1 overflow-auto p-4">
+        <p class="text-sm text-gray-400 mb-3">
+          Paste your ESPHome LVGL YAML configuration below:
+        </p>
+        <textarea
+          v-model="yamlInput"
+          rows="15"
+          class="w-full px-3 py-2 bg-gray-800 text-gray-200 border border-gray-600 rounded-lg font-mono text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+          placeholder="lvgl:&#10;  displays:&#10;    - ...&#10;  pages:&#10;    - widgets:&#10;        - ..."
+        ></textarea>
+        <div v-if="errorMessage" class="mt-3 p-3 bg-red-900/50 border border-red-700 rounded-lg">
+          <p class="text-sm text-red-300">{{ errorMessage }}</p>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="flex items-center justify-end gap-2 p-4 border-t border-gray-700">
+        <button
+          @click="handleImport"
+          class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
+        >
+          <Icon icon="file-upload" size="18" />
+          Import
+        </button>
+        <button
+          @click="handleClose"
+          class="px-4 py-2 bg-gray-800 text-gray-200 rounded-lg hover:bg-gray-700 transition-colors"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
