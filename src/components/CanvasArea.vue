@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useDesignerStore } from '../stores/designer'
 import type { Widget } from '../types/widget'
 import WidgetRenderer from './WidgetRenderer.vue'
@@ -54,6 +54,87 @@ function cancelCloseTab() {
   tabToClose.value = null
   tabToCloseName.value = ''
 }
+
+// Keyboard shortcuts
+function handleKeyDown(event: KeyboardEvent) {
+  // Check if user is typing in an input field
+  const target = event.target as HTMLElement
+  if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+    return
+  }
+  
+  const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
+  const ctrlOrCmd = isMac ? event.metaKey : event.ctrlKey
+  
+  // ESC - Deselect widget
+  if (event.key === 'Escape' && store.selectedWidgetId) {
+    event.preventDefault()
+    store.selectWidget(null)
+  }
+  
+  // Ctrl/Cmd + C - Copy widget
+  if (ctrlOrCmd && event.key.toLowerCase() === 'c' && store.selectedWidgetId) {
+    event.preventDefault()
+    store.copyWidget(store.selectedWidgetId)
+  }
+  
+  // Ctrl/Cmd + X - Cut widget
+  if (ctrlOrCmd && event.key.toLowerCase() === 'x' && store.selectedWidgetId) {
+    event.preventDefault()
+    store.cutWidget(store.selectedWidgetId)
+  }
+  
+  // Ctrl/Cmd + V - Paste widget
+  if (ctrlOrCmd && event.key.toLowerCase() === 'v' && store.clipboard) {
+    event.preventDefault()
+    store.pasteWidget()
+  }
+  
+  // Ctrl/Cmd + P - Open Preview Mode
+  if (ctrlOrCmd && event.key.toLowerCase() === 'p') {
+    event.preventDefault()
+    store.showPreviewModal = true
+  }
+  
+  // Ctrl/Cmd + E - Export YAML
+  if (ctrlOrCmd && event.key.toLowerCase() === 'e') {
+    event.preventDefault()
+    store.showYamlModal = true
+  }
+  
+  // Ctrl/Cmd + I - Import YAML
+  if (ctrlOrCmd && event.key.toLowerCase() === 'i') {
+    event.preventDefault()
+    store.showImportModal = true
+  }
+  
+  // Ctrl/Cmd + Z - Undo
+  if (ctrlOrCmd && event.key.toLowerCase() === 'z' && !event.shiftKey) {
+    event.preventDefault()
+    store.undo()
+  }
+  
+  // Ctrl/Cmd + Shift + Z or Ctrl/Cmd + Y - Redo
+  if ((ctrlOrCmd && event.key.toLowerCase() === 'z' && event.shiftKey) || 
+      (ctrlOrCmd && event.key.toLowerCase() === 'y')) {
+    event.preventDefault()
+    store.redo()
+  }
+  
+  // Delete/Backspace - Delete selected widget
+  if ((event.key === 'Delete' || event.key === 'Backspace') && store.selectedWidgetId) {
+    event.preventDefault()
+    store.deleteWidget(store.selectedWidgetId)
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('keydown', handleKeyDown)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeyDown)
+})
 
 const resolutions = [
   '128x64',
@@ -232,10 +313,8 @@ function handleCanvasDrop(event: DragEvent) {
             store.saveState()
           }
         } else if (store.draggedWidgetType) {
-          // Create new widget inside tile (no offset for new widgets)
-          const newX = (event.clientX - tileviewRect.left - tileviewPadding) / store.currentScale
-          const newY = (event.clientY - tileviewRect.top - tileviewPadding) / store.currentScale
-          const newWidget = store.createWidgetForTab(store.draggedWidgetType, newX, newY)
+          // Create new widget inside tile at position 0,0
+          const newWidget = store.createWidgetForTab(store.draggedWidgetType, 0, 0)
           if (!tile.widgets) tile.widgets = []
           tile.widgets.push(newWidget)
           // Trigger reactivity
@@ -281,10 +360,8 @@ function handleCanvasDrop(event: DragEvent) {
           store.saveState()
         }
       } else if (store.draggedWidgetType) {
-        // Create new widget inside tab (no offset for new widgets)
-        const newX = rawDropX - tabviewAbsPos.x - contentOffsetX
-        const newY = rawDropY - tabviewAbsPos.y - contentOffsetY
-        const newWidget = store.createWidgetForTab(store.draggedWidgetType, newX, newY)
+        // Create new widget inside tab at position 0,0
+        const newWidget = store.createWidgetForTab(store.draggedWidgetType, 0, 0)
         if (!activeTab.widgets) activeTab.widgets = []
         activeTab.widgets.push(newWidget)
         store.saveState()
@@ -510,7 +587,41 @@ function getWidgetStyle(widget: Widget) {
 
     <!-- Canvas Toolbar -->
     <div class="shrink-0 bg-gray-900 border-b border-gray-700 px-4 py-2 flex items-center justify-between">
-      <h2 class="text-sm font-semibold text-gray-200 uppercase tracking-wider">Canvas</h2>
+      <div class="flex items-center gap-4">
+        <h2 class="text-sm font-semibold text-gray-200 uppercase tracking-wider">Canvas</h2>
+        
+        <!-- Undo/Redo buttons -->
+        <div class="flex items-center gap-1 border-l border-gray-700 pl-4">
+          <button
+            @click="store.undo()"
+            :disabled="!store.canUndo"
+            :class="[
+              'px-2 py-1 text-xs rounded transition-colors flex items-center gap-1',
+              store.canUndo
+                ? 'text-gray-300 hover:text-white hover:bg-gray-800'
+                : 'text-gray-600 cursor-not-allowed'
+            ]"
+            title="Undo (Ctrl+Z)"
+          >
+            <Icon icon="undo" size="16" />
+            <span class="hidden sm:inline">Undo</span>
+          </button>
+          <button
+            @click="store.redo()"
+            :disabled="!store.canRedo"
+            :class="[
+              'px-2 py-1 text-xs rounded transition-colors flex items-center gap-1',
+              store.canRedo
+                ? 'text-gray-300 hover:text-white hover:bg-gray-800'
+                : 'text-gray-600 cursor-not-allowed'
+            ]"
+            title="Redo (Ctrl+Shift+Z)"
+          >
+            <Icon icon="redo" size="16" />
+            <span class="hidden sm:inline">Redo</span>
+          </button>
+        </div>
+      </div>
       
       <div class="flex items-center gap-4">
         <!-- Resolution Select -->

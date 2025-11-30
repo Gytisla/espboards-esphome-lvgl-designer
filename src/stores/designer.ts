@@ -13,6 +13,8 @@ export interface CanvasTab {
   canvasWidth: number
   canvasHeight: number
   canvasResolution: string
+  historyStack?: Widget[][] // History for this specific tab
+  currentHistoryIndex?: number // Current position in history for this tab
 }
 
 export const useDesignerStore = defineStore('designer', () => {
@@ -24,11 +26,15 @@ export const useDesignerStore = defineStore('designer', () => {
       widgets: [],
       canvasWidth: 320,
       canvasHeight: 240,
-      canvasResolution: '320x240'
+      canvasResolution: '320x240',
+      historyStack: [],
+      currentHistoryIndex: -1
     }
   ])
   const activeCanvasTabId = ref('canvas_1')
   const nextCanvasId = ref(2)
+  const maxHistorySize = 50
+  const isUndoRedoAction = ref(false)
   
   // Legacy state - now computed from active canvas tab
   const widgets = computed({
@@ -107,6 +113,10 @@ export const useDesignerStore = defineStore('designer', () => {
   const yamlInput = ref('')
   const importError = ref('')
   
+  // Clipboard for copy/paste
+  const clipboard = ref<Widget | null>(null)
+  const clipboardMode = ref<'copy' | 'cut' | null>(null)
+  
   // Computed
   const selectedWidget = computed(() => {
     // Recursive function to search for widget in nested structures
@@ -147,7 +157,160 @@ export const useDesignerStore = defineStore('designer', () => {
   
   const generatedYAML = computed(() => generateYAML())
   
+  const canUndo = computed(() => {
+    const activeTab = canvasTabs.value.find(tab => tab.id === activeCanvasTabId.value)
+    return activeTab ? (activeTab.currentHistoryIndex ?? -1) > 0 : false
+  })
+  
+  const canRedo = computed(() => {
+    const activeTab = canvasTabs.value.find(tab => tab.id === activeCanvasTabId.value)
+    if (!activeTab) return false
+    const historyLength = activeTab.historyStack?.length ?? 0
+    const currentIndex = activeTab.currentHistoryIndex ?? -1
+    return currentIndex < historyLength - 1
+  })
+  
   // Actions
+  function saveHistory() {
+    if (isUndoRedoAction.value) return
+    
+    const activeTab = canvasTabs.value.find(tab => tab.id === activeCanvasTabId.value)
+    if (!activeTab) return
+    
+    // Initialize history if needed
+    if (!activeTab.historyStack) {
+      activeTab.historyStack = []
+    }
+    if (activeTab.currentHistoryIndex === undefined) {
+      activeTab.currentHistoryIndex = -1
+    }
+    
+    // Create a deep clone of the current widgets
+    const snapshot = JSON.parse(JSON.stringify(activeTab.widgets))
+    
+    // If we're in the middle of history (after undo), remove everything after current index
+    if (activeTab.currentHistoryIndex < activeTab.historyStack.length - 1) {
+      activeTab.historyStack = activeTab.historyStack.slice(0, activeTab.currentHistoryIndex + 1)
+    }
+    
+    // Add new snapshot
+    activeTab.historyStack.push(snapshot)
+    
+    // Limit history size
+    if (activeTab.historyStack.length > maxHistorySize) {
+      activeTab.historyStack.shift()
+    } else {
+      activeTab.currentHistoryIndex++
+    }
+  }
+  
+  function undo() {
+    if (!canUndo.value) return
+    
+    const activeTab = canvasTabs.value.find(tab => tab.id === activeCanvasTabId.value)
+    if (!activeTab || !activeTab.historyStack || activeTab.currentHistoryIndex === undefined) return
+    
+    activeTab.currentHistoryIndex--
+    isUndoRedoAction.value = true
+    
+    // Restore state from history
+    const snapshot = activeTab.historyStack[activeTab.currentHistoryIndex]
+    activeTab.widgets = JSON.parse(JSON.stringify(snapshot))
+    
+    // Clear selection if widget no longer exists
+    if (selectedWidgetId.value) {
+      const widgetExists = findWidgetRecursively(selectedWidgetId.value, activeTab.widgets)
+      if (!widgetExists) {
+        selectedWidgetId.value = null
+      }
+    }
+    
+    isUndoRedoAction.value = false
+  }
+  
+  function redo() {
+    if (!canRedo.value) return
+    
+    const activeTab = canvasTabs.value.find(tab => tab.id === activeCanvasTabId.value)
+    if (!activeTab || !activeTab.historyStack || activeTab.currentHistoryIndex === undefined) return
+    
+    activeTab.currentHistoryIndex++
+    isUndoRedoAction.value = true
+    
+    // Restore state from history
+    const snapshot = activeTab.historyStack[activeTab.currentHistoryIndex]
+    activeTab.widgets = JSON.parse(JSON.stringify(snapshot))
+    
+    // Clear selection if widget no longer exists
+    if (selectedWidgetId.value) {
+      const widgetExists = findWidgetRecursively(selectedWidgetId.value, activeTab.widgets)
+      if (!widgetExists) {
+        selectedWidgetId.value = null
+      }
+    }
+    
+    isUndoRedoAction.value = false
+  }
+  
+  function findWidgetRecursively(id: string, widgetList: Widget[]): Widget | null {
+    for (const widget of widgetList) {
+      if (widget.id === id) return widget
+      
+      // Search in tabview tabs
+      if (widget.tabs) {
+        for (const tab of widget.tabs) {
+          if (tab.widgets) {
+            const found = findWidgetRecursively(id, tab.widgets)
+            if (found) return found
+          }
+        }
+      }
+      
+      // Search in tileview tiles
+      if (widget.tiles) {
+        for (const tile of widget.tiles) {
+          if (tile.widgets) {
+            const found = findWidgetRecursively(id, tile.widgets)
+            if (found) return found
+          }
+        }
+      }
+    }
+    return null
+  }
+  
+  function deleteWidgetRecursively(id: string, widgetList: Widget[]): boolean {
+    // Try to delete from current level
+    const index = widgetList.findIndex((w) => w.id === id)
+    if (index > -1) {
+      widgetList.splice(index, 1)
+      return true
+    }
+    
+    // Search in nested structures
+    for (const widget of widgetList) {
+      // Search in tabview tabs
+      if (widget.tabs) {
+        for (const tab of widget.tabs) {
+          if (tab.widgets && deleteWidgetRecursively(id, tab.widgets)) {
+            return true
+          }
+        }
+      }
+      
+      // Search in tileview tiles
+      if (widget.tiles) {
+        for (const tile of widget.tiles) {
+          if (tile.widgets && deleteWidgetRecursively(id, tile.widgets)) {
+            return true
+          }
+        }
+      }
+    }
+    
+    return false
+  }
+  
   function generateUniqueId(type: WidgetType): string {
     return `${type.replace(/[^a-zA-Z0-9_]/g, '_')}_${nextWidgetId.value++}`
   }
@@ -197,9 +360,8 @@ export const useDesignerStore = defineStore('designer', () => {
   }
   
   function deleteWidget(id: string) {
-    const index = widgets.value.findIndex((w) => w.id === id)
-    if (index > -1) {
-      widgets.value.splice(index, 1)
+    // Use recursive delete to handle widgets in tiles/tabs
+    if (deleteWidgetRecursively(id, widgets.value)) {
       if (selectedWidgetId.value === id) {
         selectedWidgetId.value = null
       }
@@ -212,28 +374,11 @@ export const useDesignerStore = defineStore('designer', () => {
   }
   
   function updateWidgetProperty(id: string, property: keyof Widget, value: any) {
-    // First check top-level widgets
-    const widget = widgets.value.find((w) => w.id === id)
+    // Use recursive search to find widget in any location
+    const widget = findWidgetRecursively(id, widgets.value)
     if (widget) {
       ;(widget as any)[property] = value
       saveState()
-      return
-    }
-    
-    // If not found, search in tabview nested widgets
-    for (const tabviewWidget of widgets.value) {
-      if (tabviewWidget.type === 'tabview' && tabviewWidget.tabs) {
-        for (const tab of tabviewWidget.tabs) {
-          if (tab.widgets) {
-            const nestedWidget = tab.widgets.find((w) => w.id === id)
-            if (nestedWidget) {
-              ;(nestedWidget as any)[property] = value
-              saveState()
-              return
-            }
-          }
-        }
-      }
     }
   }
   
@@ -513,12 +658,14 @@ export const useDesignerStore = defineStore('designer', () => {
       widgets: [],
       canvasWidth: 320,
       canvasHeight: 240,
-      canvasResolution: '320x240'
+      canvasResolution: '320x240',
+      historyStack: [[]],  // Initialize with empty widgets array
+      currentHistoryIndex: 0
     }
     canvasTabs.value.push(newTab)
     activeCanvasTabId.value = newId
     selectedWidgetId.value = null
-    saveState()
+    // Don't call saveState() here to avoid tracking tab creation in history
   }
   
   function removeCanvasTab(tabId: string) {
@@ -541,7 +688,7 @@ export const useDesignerStore = defineStore('designer', () => {
       }
     }
     
-    saveState()
+    // Don't call saveState() - tab management is not tracked in widget history
   }
   
   function switchCanvasTab(tabId: string) {
@@ -555,12 +702,91 @@ export const useDesignerStore = defineStore('designer', () => {
     const tab = canvasTabs.value.find(tab => tab.id === tabId)
     if (tab) {
       tab.name = newName
+      // Don't call saveState() - tab management is not tracked in widget history
+    }
+  }
+  
+  // Copy/Paste functions
+  function generateNewWidgetId(): string {
+    return `widget_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  }
+  
+  function regenerateWidgetIds(widget: Widget): Widget {
+    // Deep clone the widget and regenerate all IDs (including nested widgets)
+    const clonedWidget = JSON.parse(JSON.stringify(widget))
+    clonedWidget.id = generateNewWidgetId()
+    
+    // Regenerate IDs for nested widgets based on widget type
+    if (clonedWidget.type === 'tabview' && clonedWidget.tabs) {
+      clonedWidget.tabs = clonedWidget.tabs.map((tab: any) => ({
+        ...tab,
+        widgets: tab.widgets.map((w: Widget) => regenerateWidgetIds(w))
+      }))
+    } else if (clonedWidget.type === 'tileview' && clonedWidget.tiles) {
+      clonedWidget.tiles = clonedWidget.tiles.map((tile: any) => ({
+        ...tile,
+        widgets: tile.widgets.map((w: Widget) => regenerateWidgetIds(w))
+      }))
+    } else if (clonedWidget.widgets) {
+      clonedWidget.widgets = clonedWidget.widgets.map((w: Widget) => regenerateWidgetIds(w))
+    }
+    
+    return clonedWidget
+  }
+  
+  function copyWidget(widgetId: string) {
+    const widget = findWidgetRecursively(widgetId, widgets.value)
+    if (widget) {
+      clipboard.value = JSON.parse(JSON.stringify(widget)) // Deep clone
+      clipboardMode.value = 'copy'
+    }
+  }
+  
+  function cutWidget(widgetId: string) {
+    const widget = findWidgetRecursively(widgetId, widgets.value)
+    if (widget) {
+      clipboard.value = JSON.parse(JSON.stringify(widget)) // Deep clone
+      clipboardMode.value = 'cut'
+      deleteWidget(widgetId) // Remove from current canvas
+    }
+  }
+  
+  function pasteWidget() {
+    if (!clipboard.value) return
+    
+    // Regenerate IDs for the pasted widget and all nested widgets
+    const pastedWidget = regenerateWidgetIds(clipboard.value)
+    
+    // Offset position slightly so it doesn't paste exactly on top
+    pastedWidget.x = (clipboard.value.x || 0) + 20
+    pastedWidget.y = (clipboard.value.y || 0) + 20
+    
+    // Add to current canvas
+    const activeTab = canvasTabs.value.find(tab => tab.id === activeCanvasTabId.value)
+    if (activeTab) {
+      activeTab.widgets.push(pastedWidget)
+      selectedWidgetId.value = pastedWidget.id
+      
+      // Clear clipboard if it was a cut operation
+      if (clipboardMode.value === 'cut') {
+        clipboard.value = null
+        clipboardMode.value = null
+      }
+      
       saveState()
     }
   }
   
+  function clearClipboard() {
+    clipboard.value = null
+    clipboardMode.value = null
+  }
+  
   // LocalStorage
   function saveState() {
+    // Save history snapshot for undo/redo
+    saveHistory()
+    
     const state = {
       canvasTabs: canvasTabs.value,
       activeCanvasTabId: activeCanvasTabId.value,
@@ -583,6 +809,16 @@ export const useDesignerStore = defineStore('designer', () => {
           canvasTabs.value = state.canvasTabs
           activeCanvasTabId.value = state.activeCanvasTabId || canvasTabs.value[0]?.id || 'canvas_1'
           nextCanvasId.value = state.nextCanvasId || 2
+          
+          // Initialize history for each tab if not present
+          canvasTabs.value.forEach(tab => {
+            if (!tab.historyStack) {
+              tab.historyStack = [JSON.parse(JSON.stringify(tab.widgets))]
+            }
+            if (tab.currentHistoryIndex === undefined) {
+              tab.currentHistoryIndex = tab.historyStack.length > 0 ? 0 : -1
+            }
+          })
         } else {
           // Legacy: migrate old single-canvas data to first tab
           canvasTabs.value = [{
@@ -591,7 +827,9 @@ export const useDesignerStore = defineStore('designer', () => {
             widgets: state.widgets || [],
             canvasWidth: 320,
             canvasHeight: 240,
-            canvasResolution: state.resolution || '320x240'
+            canvasResolution: state.resolution || '320x240',
+            historyStack: [state.widgets || []],
+            currentHistoryIndex: 0
           }]
           activeCanvasTabId.value = 'canvas_1'
           nextCanvasId.value = 2
@@ -629,10 +867,14 @@ export const useDesignerStore = defineStore('designer', () => {
     dragOffsetY,
     yamlInput,
     importError,
+    clipboard,
+    clipboardMode,
     // Computed
     selectedWidget,
     widgetCount,
     generatedYAML,
+    canUndo,
+    canRedo,
     // Actions
     addWidget,
     createWidgetForTab,
@@ -650,6 +892,12 @@ export const useDesignerStore = defineStore('designer', () => {
     removeCanvasTab,
     switchCanvasTab,
     renameCanvasTab,
+    copyWidget,
+    cutWidget,
+    pasteWidget,
+    clearClipboard,
+    undo,
+    redo,
     saveState,
     loadState
   }

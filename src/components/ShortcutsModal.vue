@@ -5,14 +5,18 @@ import Icon from './Icon.vue'
 const store = useDesignerStore()
 
 const shortcuts = [
+  { keys: 'Escape', description: 'Deselect widget / Close modal' },
   { keys: 'Delete/Backspace', description: 'Delete selected widget' },
   { keys: '← → ↑ ↓', description: 'Move selected widget' },
+  { keys: 'Ctrl/Cmd + C', description: 'Copy selected widget' },
+  { keys: 'Ctrl/Cmd + X', description: 'Cut selected widget' },
+  { keys: 'Ctrl/Cmd + V', description: 'Paste widget' },
+  { keys: 'Ctrl/Cmd + Z', description: 'Undo last action' },
+  { keys: 'Ctrl/Cmd + Shift + Z', description: 'Redo action' },
+  { keys: 'Ctrl/Cmd + Y', description: 'Redo action (alternative)' },
   { keys: 'Ctrl/Cmd + P', description: 'Open Preview Mode' },
-  { keys: 'Ctrl/Cmd + Z', description: 'Undo (reload from localStorage)' },
-  { keys: 'Ctrl/Cmd + S', description: 'Save state' },
-  { keys: 'Ctrl/Cmd + G', description: 'Generate YAML' },
+  { keys: 'Ctrl/Cmd + E', description: 'Export YAML' },
   { keys: 'Ctrl/Cmd + I', description: 'Import YAML' },
-  { keys: 'Escape', description: 'Close modal / Deselect widget' }
 ]
 </script>
 
