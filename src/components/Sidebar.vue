@@ -283,7 +283,9 @@ function saveTileLayout() {
   if (currentTileConfig.value.tileview?.tiles) {
     // Trigger reactivity
     const tileview = currentTileConfig.value.tileview
-    tileview.tiles = [...tileview.tiles]
+    if (tileview.tiles) {
+      tileview.tiles = [...tileview.tiles]
+    }
     store.saveState()
   }
   closeTileLayoutModal()
@@ -503,6 +505,571 @@ function updateButtonProperty(rowIndex: number, buttonIndex: number, property: s
   }
 }
 
+// Drag and drop state for reordering widgets in sidebar
+const draggedItem = ref<{
+  type: 'widget' | 'tab-widget' | 'tile-widget',
+  widgetId: string,
+  parentId?: string, // For nested widgets (parent tabview/tileview ID)
+  tabIndex?: number, // For tab widgets
+  tileIndex?: number // For tile widgets
+} | null>(null)
+
+// Helper function to find a widget by ID anywhere in the hierarchy
+function findWidgetById(widgetId: string, widgets: Widget[] = store.widgets): Widget | null {
+  for (const widget of widgets) {
+    if (widget.id === widgetId) return widget
+    
+    // Search in tabs
+    if (widget.type === 'tabview' && widget.tabs) {
+      for (const tab of widget.tabs) {
+        if (tab.widgets) {
+          const found = findWidgetById(widgetId, tab.widgets)
+          if (found) return found
+        }
+      }
+    }
+    
+    // Search in tiles
+    if (widget.type === 'tileview' && widget.tiles) {
+      for (const tile of widget.tiles) {
+        if (tile.widgets) {
+          const found = findWidgetById(widgetId, tile.widgets)
+          if (found) return found
+        }
+      }
+    }
+  }
+  return null
+}
+
+// Top-level widget drag handlers
+function handleWidgetDragStart(event: DragEvent, widget: Widget) {
+  draggedItem.value = {
+    type: 'widget',
+    widgetId: widget.id
+  }
+  event.dataTransfer!.effectAllowed = 'move'
+  event.dataTransfer!.setData('text/plain', widget.id)
+}
+
+function handleWidgetDragOver(event: DragEvent) {
+  // Allow any widget type to be dropped at root level
+  if (draggedItem.value) {
+    event.preventDefault()
+    event.dataTransfer!.dropEffect = 'move'
+  }
+}
+
+function handleWidgetDrop(event: DragEvent, targetWidget: Widget) {
+  event.preventDefault()
+  event.stopPropagation()
+  
+  if (!draggedItem.value) return
+  
+  const draggedId = draggedItem.value.widgetId
+  if (draggedId === targetWidget.id) return
+  
+  // Handle different source types
+  if (draggedItem.value.type === 'widget') {
+    // Moving within root level
+    const draggedIndex = store.widgets.findIndex(w => w.id === draggedId)
+    const targetIndex = store.widgets.findIndex(w => w.id === targetWidget.id)
+    
+    if (draggedIndex === -1 || targetIndex === -1) return
+    
+    const widgets = [...store.widgets]
+    const [draggedWidget] = widgets.splice(draggedIndex, 1)
+    if (!draggedWidget) return
+    widgets.splice(targetIndex, 0, draggedWidget)
+    
+    store.widgets = widgets
+    store.saveState()
+  } else if (draggedItem.value.type === 'tab-widget') {
+    // Moving from tab to root
+    const parentTabview = store.widgets.find(w => w.id === draggedItem.value!.parentId)
+    if (!parentTabview?.tabs) return
+    
+    const sourceTab = parentTabview.tabs[draggedItem.value.tabIndex!]
+    if (!sourceTab?.widgets) return
+    
+    const draggedIndex = sourceTab.widgets.findIndex(w => w.id === draggedId)
+    if (draggedIndex === -1) return
+    
+    const [draggedWidget] = sourceTab.widgets.splice(draggedIndex, 1)
+    if (!draggedWidget) return
+    
+    // Add to root at target position
+    const targetIndex = store.widgets.findIndex(w => w.id === targetWidget.id)
+    if (targetIndex === -1) {
+      store.widgets.push(draggedWidget)
+    } else {
+      store.widgets.splice(targetIndex, 0, draggedWidget)
+    }
+    
+    parentTabview.tabs = [...parentTabview.tabs]
+    store.saveState()
+  } else if (draggedItem.value.type === 'tile-widget') {
+    // Moving from tile to root
+    const parentTileview = findWidgetById(draggedItem.value.parentId!)
+    if (!parentTileview?.tiles) return
+    
+    const sourceTile = parentTileview.tiles[draggedItem.value.tileIndex!]
+    if (!sourceTile?.widgets) return
+    
+    const draggedIndex = sourceTile.widgets.findIndex(w => w.id === draggedId)
+    if (draggedIndex === -1) return
+    
+    const [draggedWidget] = sourceTile.widgets.splice(draggedIndex, 1)
+    if (!draggedWidget) return
+    
+    // Add to root at target position
+    const targetIndex = store.widgets.findIndex(w => w.id === targetWidget.id)
+    if (targetIndex === -1) {
+      store.widgets.push(draggedWidget)
+    } else {
+      store.widgets.splice(targetIndex, 0, draggedWidget)
+    }
+    
+    parentTileview.tiles = [...parentTileview.tiles]
+    store.saveState()
+  }
+  
+  draggedItem.value = null
+}
+
+// Tab widget drag handlers
+function handleTabWidgetDragStart(event: DragEvent, tabviewWidget: Widget, tabIndex: number, widget: Widget) {
+  draggedItem.value = {
+    type: 'tab-widget',
+    widgetId: widget.id,
+    parentId: tabviewWidget.id,
+    tabIndex
+  }
+  event.dataTransfer!.effectAllowed = 'move'
+  event.dataTransfer!.setData('text/plain', widget.id)
+  event.stopPropagation()
+}
+
+function handleTabWidgetDragOver(event: DragEvent, tabviewWidget: Widget, tabIndex: number) {
+  // Allow any widget type to be dropped into tabs
+  if (draggedItem.value) {
+    event.preventDefault()
+    event.dataTransfer!.dropEffect = 'move'
+  }
+}
+
+function handleTabWidgetDrop(event: DragEvent, tabviewWidget: Widget, tabIndex: number, targetWidget: Widget) {
+  event.preventDefault()
+  event.stopPropagation()
+  
+  if (!draggedItem.value) return
+  if (draggedItem.value.widgetId === targetWidget.id) return
+  
+  const targetTab = tabviewWidget.tabs?.[tabIndex]
+  if (!targetTab?.widgets) return
+  
+  // Handle different source types
+  if (draggedItem.value.type === 'widget') {
+    // Moving from root to tab
+    const draggedIndex = store.widgets.findIndex(w => w.id === draggedItem.value!.widgetId)
+    if (draggedIndex === -1) return
+    
+    const [draggedWidget] = store.widgets.splice(draggedIndex, 1)
+    if (!draggedWidget) return
+    
+    // Reset position to 0,0 when moving from root to tab
+    draggedWidget.x = 0
+    draggedWidget.y = 0
+    
+    // Add to target tab
+    const targetIndex = targetTab.widgets.findIndex(w => w.id === targetWidget.id)
+    if (targetIndex === -1) {
+      targetTab.widgets.push(draggedWidget)
+    } else {
+      targetTab.widgets.splice(targetIndex, 0, draggedWidget)
+    }
+    
+    tabviewWidget.tabs = [...tabviewWidget.tabs!]
+    store.saveState()
+  } else if (draggedItem.value.type === 'tab-widget') {
+    // Moving within tabs or between tabs
+    if (draggedItem.value.parentId !== tabviewWidget.id) return
+    
+    const sourceTab = tabviewWidget.tabs?.[draggedItem.value.tabIndex!]
+    if (!sourceTab?.widgets) return
+    
+    const draggedIndex = sourceTab.widgets.findIndex(w => w.id === draggedItem.value!.widgetId)
+    if (draggedIndex === -1) return
+    
+    const [draggedWidget] = sourceTab.widgets.splice(draggedIndex, 1)
+    if (!draggedWidget) return
+    
+    // If moving within the same tab, find target index after removal
+    if (draggedItem.value.tabIndex === tabIndex) {
+      const targetIndex = sourceTab.widgets.findIndex(w => w.id === targetWidget.id)
+      if (targetIndex === -1) {
+        sourceTab.widgets.push(draggedWidget)
+      } else {
+        sourceTab.widgets.splice(targetIndex, 0, draggedWidget)
+      }
+    } else {
+      // Moving to a different tab
+      const targetIndex = targetTab.widgets.findIndex(w => w.id === targetWidget.id)
+      if (targetIndex === -1) {
+        targetTab.widgets.push(draggedWidget)
+      } else {
+        targetTab.widgets.splice(targetIndex, 0, draggedWidget)
+      }
+    }
+    
+    tabviewWidget.tabs = [...tabviewWidget.tabs!]
+    store.saveState()
+  } else if (draggedItem.value.type === 'tile-widget') {
+    // Moving from tile to tab
+    const parentTileview = findWidgetById(draggedItem.value.parentId!)
+    if (!parentTileview?.tiles) return
+    
+    const sourceTile = parentTileview.tiles[draggedItem.value.tileIndex!]
+    if (!sourceTile?.widgets) return
+    
+    const draggedIndex = sourceTile.widgets.findIndex(w => w.id === draggedItem.value!.widgetId)
+    if (draggedIndex === -1) return
+    
+    const [draggedWidget] = sourceTile.widgets.splice(draggedIndex, 1)
+    if (!draggedWidget) return
+    
+    // Add to target tab
+    const targetIndex = targetTab.widgets.findIndex(w => w.id === targetWidget.id)
+    if (targetIndex === -1) {
+      targetTab.widgets.push(draggedWidget)
+    } else {
+      targetTab.widgets.splice(targetIndex, 0, draggedWidget)
+    }
+    
+    parentTileview.tiles = [...parentTileview.tiles]
+    tabviewWidget.tabs = [...tabviewWidget.tabs!]
+    store.saveState()
+  }
+  
+  draggedItem.value = null
+}
+
+// Allow dropping on tab container (when empty or between widgets)
+function handleTabContainerDragOver(event: DragEvent, tabviewWidget: Widget, tabIndex: number) {
+  if (draggedItem.value) {
+    event.preventDefault()
+    event.dataTransfer!.dropEffect = 'move'
+  }
+}
+
+function handleTabContainerDrop(event: DragEvent, tabviewWidget: Widget, tabIndex: number) {
+  event.preventDefault()
+  event.stopPropagation()
+  
+  if (!draggedItem.value) return
+  
+  const targetTab = tabviewWidget.tabs?.[tabIndex]
+  if (!targetTab) return
+  
+  // Handle different source types
+  if (draggedItem.value.type === 'widget') {
+    // Moving from root to tab (at the end)
+    const draggedIndex = store.widgets.findIndex(w => w.id === draggedItem.value!.widgetId)
+    if (draggedIndex === -1) return
+    
+    const [draggedWidget] = store.widgets.splice(draggedIndex, 1)
+    if (!draggedWidget) return
+    
+    // Reset position to 0,0 when moving from root to tab
+    draggedWidget.x = 0
+    draggedWidget.y = 0
+    
+    if (!targetTab.widgets) {
+      targetTab.widgets = []
+    }
+    targetTab.widgets.push(draggedWidget)
+    
+    tabviewWidget.tabs = [...tabviewWidget.tabs!]
+    store.saveState()
+  } else if (draggedItem.value.type === 'tab-widget') {
+    // Moving between tabs
+    if (draggedItem.value.parentId !== tabviewWidget.id) return
+    
+    // Don't do anything if dropping in the same tab with no target
+    if (draggedItem.value.tabIndex === tabIndex) {
+      draggedItem.value = null
+      return
+    }
+    
+    const sourceTab = tabviewWidget.tabs?.[draggedItem.value.tabIndex!]
+    if (!sourceTab?.widgets) return
+    
+    const draggedIndex = sourceTab.widgets.findIndex(w => w.id === draggedItem.value!.widgetId)
+    if (draggedIndex === -1) return
+    
+    const [draggedWidget] = sourceTab.widgets.splice(draggedIndex, 1)
+    if (!draggedWidget) return
+    
+    if (!targetTab.widgets) {
+      targetTab.widgets = []
+    }
+    targetTab.widgets.push(draggedWidget)
+    
+    tabviewWidget.tabs = [...tabviewWidget.tabs!]
+    store.saveState()
+  } else if (draggedItem.value.type === 'tile-widget') {
+    // Moving from tile to tab (at the end)
+    const parentTileview = findWidgetById(draggedItem.value.parentId!)
+    if (!parentTileview?.tiles) return
+    
+    const sourceTile = parentTileview.tiles[draggedItem.value.tileIndex!]
+    if (!sourceTile?.widgets) return
+    
+    const draggedIndex = sourceTile.widgets.findIndex(w => w.id === draggedItem.value!.widgetId)
+    if (draggedIndex === -1) return
+    
+    const [draggedWidget] = sourceTile.widgets.splice(draggedIndex, 1)
+    if (!draggedWidget) return
+    
+    if (!targetTab.widgets) {
+      targetTab.widgets = []
+    }
+    targetTab.widgets.push(draggedWidget)
+    
+    parentTileview.tiles = [...parentTileview.tiles]
+    tabviewWidget.tabs = [...tabviewWidget.tabs!]
+    store.saveState()
+  }
+  
+  draggedItem.value = null
+}
+
+// Tile widget drag handlers
+function handleTileWidgetDragStart(event: DragEvent, tileviewWidget: Widget, tileIndex: number, widget: Widget) {
+  draggedItem.value = {
+    type: 'tile-widget',
+    widgetId: widget.id,
+    parentId: tileviewWidget.id,
+    tileIndex
+  }
+  event.dataTransfer!.effectAllowed = 'move'
+  event.dataTransfer!.setData('text/plain', widget.id)
+  event.stopPropagation()
+}
+
+function handleTileWidgetDragOver(event: DragEvent, tileviewWidget: Widget, tileIndex: number) {
+  // Allow any widget type to be dropped into tiles
+  if (draggedItem.value) {
+    event.preventDefault()
+    event.dataTransfer!.dropEffect = 'move'
+  }
+}
+
+function handleTileWidgetDrop(event: DragEvent, tileviewWidget: Widget, tileIndex: number, targetWidget: Widget) {
+  event.preventDefault()
+  event.stopPropagation()
+  
+  if (!draggedItem.value) return
+  if (draggedItem.value.widgetId === targetWidget.id) return
+  
+  const targetTile = tileviewWidget.tiles?.[tileIndex]
+  if (!targetTile?.widgets) return
+  
+  // Handle different source types
+  if (draggedItem.value.type === 'widget') {
+    // Moving from root to tile
+    const draggedIndex = store.widgets.findIndex(w => w.id === draggedItem.value!.widgetId)
+    if (draggedIndex === -1) return
+    
+    const [draggedWidget] = store.widgets.splice(draggedIndex, 1)
+    if (!draggedWidget) return
+    
+    // Reset position to 0,0 when moving from root
+    draggedWidget.x = 0
+    draggedWidget.y = 0
+    
+    // Add to target tile
+    const targetIndex = targetTile.widgets.findIndex(w => w.id === targetWidget.id)
+    if (targetIndex === -1) {
+      targetTile.widgets.push(draggedWidget)
+    } else {
+      targetTile.widgets.splice(targetIndex, 0, draggedWidget)
+    }
+    
+    tileviewWidget.tiles = [...tileviewWidget.tiles!]
+    store.saveState()
+  } else if (draggedItem.value.type === 'tab-widget') {
+    // Moving from tab to tile
+    const parentTabview = findWidgetById(draggedItem.value.parentId!)
+    if (!parentTabview?.tabs) return
+    
+    const sourceTab = parentTabview.tabs[draggedItem.value.tabIndex!]
+    if (!sourceTab?.widgets) return
+    
+    const draggedIndex = sourceTab.widgets.findIndex(w => w.id === draggedItem.value!.widgetId)
+    if (draggedIndex === -1) return
+    
+    const [draggedWidget] = sourceTab.widgets.splice(draggedIndex, 1)
+    if (!draggedWidget) return
+    
+    // Reset position to 0,0
+    draggedWidget.x = 0
+    draggedWidget.y = 0
+    
+    // Add to target tile
+    const targetIndex = targetTile.widgets.findIndex(w => w.id === targetWidget.id)
+    if (targetIndex === -1) {
+      targetTile.widgets.push(draggedWidget)
+    } else {
+      targetTile.widgets.splice(targetIndex, 0, draggedWidget)
+    }
+    
+    parentTabview.tabs = [...parentTabview.tabs]
+    tileviewWidget.tiles = [...tileviewWidget.tiles!]
+    store.saveState()
+  } else if (draggedItem.value.type === 'tile-widget') {
+    // Moving within tiles or between tiles
+    if (draggedItem.value.parentId !== tileviewWidget.id) return
+    
+    const sourceTile = tileviewWidget.tiles?.[draggedItem.value.tileIndex!]
+    if (!sourceTile?.widgets) return
+    
+    const draggedIndex = sourceTile.widgets.findIndex(w => w.id === draggedItem.value!.widgetId)
+    if (draggedIndex === -1) return
+    
+    const [draggedWidget] = sourceTile.widgets.splice(draggedIndex, 1)
+    if (!draggedWidget) return
+    
+    // If moving within the same tile, find target index after removal
+    if (draggedItem.value.tileIndex === tileIndex) {
+      const targetIndex = sourceTile.widgets.findIndex(w => w.id === targetWidget.id)
+      if (targetIndex === -1) {
+        sourceTile.widgets.push(draggedWidget)
+      } else {
+        sourceTile.widgets.splice(targetIndex, 0, draggedWidget)
+      }
+    } else {
+      // Moving to a different tile - reset position to 0,0
+      draggedWidget.x = 0
+      draggedWidget.y = 0
+      
+      const targetIndex = targetTile.widgets.findIndex(w => w.id === targetWidget.id)
+      if (targetIndex === -1) {
+        targetTile.widgets.push(draggedWidget)
+      } else {
+        targetTile.widgets.splice(targetIndex, 0, draggedWidget)
+      }
+    }
+    
+    tileviewWidget.tiles = [...tileviewWidget.tiles!]
+    store.saveState()
+  }
+  
+  draggedItem.value = null
+}
+
+// Allow dropping on tile container (when empty or between widgets)
+function handleTileContainerDragOver(event: DragEvent, tileviewWidget: Widget, tileIndex: number) {
+  if (draggedItem.value) {
+    event.preventDefault()
+    event.dataTransfer!.dropEffect = 'move'
+  }
+}
+
+function handleTileContainerDrop(event: DragEvent, tileviewWidget: Widget, tileIndex: number) {
+  event.preventDefault()
+  event.stopPropagation()
+  
+  if (!draggedItem.value) return
+  
+  const targetTile = tileviewWidget.tiles?.[tileIndex]
+  if (!targetTile) return
+  
+  // Handle different source types
+  if (draggedItem.value.type === 'widget') {
+    // Moving from root to tile (at the end)
+    const draggedIndex = store.widgets.findIndex(w => w.id === draggedItem.value!.widgetId)
+    if (draggedIndex === -1) return
+    
+    const [draggedWidget] = store.widgets.splice(draggedIndex, 1)
+    if (!draggedWidget) return
+    
+    // Reset position to 0,0
+    draggedWidget.x = 0
+    draggedWidget.y = 0
+    
+    if (!targetTile.widgets) {
+      targetTile.widgets = []
+    }
+    targetTile.widgets.push(draggedWidget)
+    
+    tileviewWidget.tiles = [...tileviewWidget.tiles!]
+    store.saveState()
+  } else if (draggedItem.value.type === 'tab-widget') {
+    // Moving from tab to tile (at the end)
+    const parentTabview = findWidgetById(draggedItem.value.parentId!)
+    if (!parentTabview?.tabs) return
+    
+    const sourceTab = parentTabview.tabs[draggedItem.value.tabIndex!]
+    if (!sourceTab?.widgets) return
+    
+    const draggedIndex = sourceTab.widgets.findIndex(w => w.id === draggedItem.value!.widgetId)
+    if (draggedIndex === -1) return
+    
+    const [draggedWidget] = sourceTab.widgets.splice(draggedIndex, 1)
+    if (!draggedWidget) return
+    
+    // Reset position to 0,0
+    draggedWidget.x = 0
+    draggedWidget.y = 0
+    
+    if (!targetTile.widgets) {
+      targetTile.widgets = []
+    }
+    targetTile.widgets.push(draggedWidget)
+    
+    parentTabview.tabs = [...parentTabview.tabs]
+    tileviewWidget.tiles = [...tileviewWidget.tiles!]
+    store.saveState()
+  } else if (draggedItem.value.type === 'tile-widget') {
+    // Moving between tiles
+    if (draggedItem.value.parentId !== tileviewWidget.id) return
+    
+    // Don't do anything if dropping in the same tile with no target
+    if (draggedItem.value.tileIndex === tileIndex) {
+      draggedItem.value = null
+      return
+    }
+    
+    const sourceTile = tileviewWidget.tiles?.[draggedItem.value.tileIndex!]
+    if (!sourceTile?.widgets) return
+    
+    const draggedIndex = sourceTile.widgets.findIndex(w => w.id === draggedItem.value!.widgetId)
+    if (draggedIndex === -1) return
+    
+    const [draggedWidget] = sourceTile.widgets.splice(draggedIndex, 1)
+    if (!draggedWidget) return
+    
+    // Reset position to 0,0 when moving to different tile
+    draggedWidget.x = 0
+    draggedWidget.y = 0
+    
+    if (!targetTile.widgets) {
+      targetTile.widgets = []
+    }
+    targetTile.widgets.push(draggedWidget)
+    
+    tileviewWidget.tiles = [...tileviewWidget.tiles!]
+    store.saveState()
+  }
+  
+  draggedItem.value = null
+}
+
+function handleDragEnd() {
+  draggedItem.value = null
+}
+
 function getWidgetIcon(widget: Widget): string {
   return widgetIconMap[widget.type] || 'widgets'
 }
@@ -541,15 +1108,20 @@ function getWidgetIcon(widget: Widget): string {
           <li v-for="widget in store.widgets" :key="widget.id">
             <!-- Top-level widget -->
             <div
+              draggable="true"
+              @dragstart="handleWidgetDragStart($event, widget)"
+              @dragover="handleWidgetDragOver($event)"
+              @drop="handleWidgetDrop($event, widget)"
+              @dragend="handleDragEnd"
               @click="store.selectWidget(widget.id)"
               :class="[
-                'flex items-center justify-between p-2 rounded-lg cursor-pointer text-xs transition-all group',
+                'flex items-center justify-between p-2 rounded-lg cursor-move text-xs transition-all group',
                 store.selectedWidgetId === widget.id
                   ? 'bg-indigo-600 text-white'
                   : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'
               ]"
             >
-              <span class="flex items-center gap-2 min-w-0 flex-1">
+              <span class="flex items-center gap-2 min-w-0 flex-1 pointer-events-none">
                 <Icon :icon="getWidgetIcon(widget)" size="16" class="shrink-0" />
                 <span class="truncate">{{ widget.text || widget.type }}</span>
                 <span v-if="widget.type === 'tabview' && widget.tabs" class="text-[10px] opacity-60">
@@ -561,7 +1133,7 @@ function getWidgetIcon(widget: Widget): string {
               </span>
               <button
                 @click.stop="store.deleteWidget(widget.id)"
-                class="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all shrink-0"
+                class="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all shrink-0 pointer-events-auto"
                 title="Delete widget"
               >
                 <Icon icon="delete" size="16" />
@@ -572,7 +1144,11 @@ function getWidgetIcon(widget: Widget): string {
             <ul v-if="widget.type === 'tabview' && widget.tabs && widget.tabs.length > 0" class="ml-4 mt-1 space-y-1 border-l-2 border-gray-300 dark:border-gray-700 pl-2">
               <li v-for="(tab, tabIndex) in widget.tabs" :key="tab.id" class="space-y-1">
                 <!-- Tab header -->
-                <div class="flex items-center gap-2 px-2 py-1 text-[11px] text-gray-500 dark:text-gray-400 font-medium">
+                <div 
+                  class="flex items-center gap-2 px-2 py-1 text-[11px] text-gray-500 dark:text-gray-400 font-medium"
+                  @dragover="handleTabContainerDragOver($event, widget, tabIndex)"
+                  @drop="handleTabContainerDrop($event, widget, tabIndex)"
+                >
                   <Icon icon="tab" size="14" class="shrink-0" />
                   <span class="truncate">{{ tab.name }}</span>
                   <span v-if="tab.widgets && tab.widgets.length > 0" class="text-[9px] opacity-60">
@@ -581,7 +1157,12 @@ function getWidgetIcon(widget: Widget): string {
                 </div>
                 
                 <!-- Widgets in this tab -->
-                <ul v-if="tab.widgets && tab.widgets.length > 0" class="ml-4 space-y-0.5">
+                <ul 
+                  v-if="tab.widgets && tab.widgets.length > 0" 
+                  class="ml-4 space-y-0.5"
+                  @dragover="handleTabContainerDragOver($event, widget, tabIndex)"
+                  @drop="handleTabContainerDrop($event, widget, tabIndex)"
+                >
                   <li
                     v-for="childWidget in tab.widgets"
                     :key="childWidget.id"
@@ -589,15 +1170,20 @@ function getWidgetIcon(widget: Widget): string {
                   >
                     <!-- Child widget item -->
                     <div
+                      draggable="true"
+                      @dragstart="handleTabWidgetDragStart($event, widget, tabIndex, childWidget)"
+                      @dragover="handleTabWidgetDragOver($event, widget, tabIndex)"
+                      @drop="handleTabWidgetDrop($event, widget, tabIndex, childWidget)"
+                      @dragend="handleDragEnd"
                       @click.stop="selectTabWidget(widget, tabIndex, childWidget.id)"
                       :class="[
-                        'flex items-center justify-between px-2 py-1 rounded cursor-pointer text-[11px] transition-all group',
+                        'flex items-center justify-between px-2 py-1 rounded cursor-move text-[11px] transition-all group',
                         store.selectedWidgetId === childWidget.id
                           ? 'bg-indigo-600 text-white'
-                          : 'hover:bg-gray-800 text-gray-400'
+                          : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-400'
                       ]"
                     >
-                      <span class="flex items-center gap-1.5 min-w-0 flex-1">
+                      <span class="flex items-center gap-1.5 min-w-0 flex-1 pointer-events-none">
                         <Icon :icon="getWidgetIcon(childWidget)" size="12" class="shrink-0" />
                         <span class="truncate">{{ childWidget.text || childWidget.type }}</span>
                         <span v-if="childWidget.type === 'tileview' && childWidget.tiles" class="text-[9px] opacity-60">
@@ -606,7 +1192,7 @@ function getWidgetIcon(widget: Widget): string {
                       </span>
                       <button
                         @click.stop="removeTabWidget(widget, tabIndex, childWidget.id)"
-                        class="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all shrink-0"
+                        class="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all shrink-0 pointer-events-auto"
                         title="Delete widget"
                       >
                         <Icon icon="delete" size="12" />
@@ -619,6 +1205,8 @@ function getWidgetIcon(widget: Widget): string {
                         <!-- Tile header -->
                         <div 
                           @click.stop="selectTileFromList(childWidget, tile.row, tile.column)"
+                          @dragover="handleTileContainerDragOver($event, childWidget, nestedTileIndex)"
+                          @drop="handleTileContainerDrop($event, childWidget, nestedTileIndex)"
                           :class="[
                             'flex items-center gap-2 px-2 py-1 text-[10px] font-medium cursor-pointer rounded transition-all group',
                             tile.row === (childWidget.current_tile_row || 0) && tile.column === (childWidget.current_tile_column || 0)
@@ -643,25 +1231,35 @@ function getWidgetIcon(widget: Widget): string {
                         </div>
                         
                         <!-- Widgets in this tile -->
-                        <ul v-if="tile.widgets && tile.widgets.length > 0" class="ml-3 space-y-0.5">
+                        <ul 
+                          v-if="tile.widgets && tile.widgets.length > 0" 
+                          class="ml-3 space-y-0.5"
+                          @dragover="handleTileContainerDragOver($event, childWidget, nestedTileIndex)"
+                          @drop="handleTileContainerDrop($event, childWidget, nestedTileIndex)"
+                        >
                           <li
                             v-for="tileWidget in tile.widgets"
                             :key="tileWidget.id"
+                            draggable="true"
+                            @dragstart="handleTileWidgetDragStart($event, childWidget, nestedTileIndex, tileWidget)"
+                            @dragover="handleTileWidgetDragOver($event, childWidget, nestedTileIndex)"
+                            @drop="handleTileWidgetDrop($event, childWidget, nestedTileIndex, tileWidget)"
+                            @dragend="handleDragEnd"
                             @click.stop="selectTileWidget(childWidget, nestedTileIndex, tileWidget.id)"
                             :class="[
-                              'flex items-center justify-between px-2 py-0.5 rounded cursor-pointer text-[10px] transition-all group',
+                              'flex items-center justify-between px-2 py-0.5 rounded cursor-move text-[10px] transition-all group',
                               store.selectedWidgetId === tileWidget.id
                                 ? 'bg-indigo-600 text-white'
                                 : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400'
                             ]"
                           >
-                            <span class="flex items-center gap-1 min-w-0 flex-1">
+                            <span class="flex items-center gap-1 min-w-0 flex-1 pointer-events-none">
                               <Icon :icon="getWidgetIcon(tileWidget)" size="10" class="shrink-0" />
                               <span class="truncate">{{ tileWidget.text || tileWidget.type }}</span>
                             </span>
                             <button
                               @click.stop="removeTileWidget(childWidget, nestedTileIndex, tileWidget.id)"
-                              class="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all shrink-0"
+                              class="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all shrink-0 pointer-events-auto"
                               title="Delete widget"
                             >
                               <Icon icon="delete" size="10" />
@@ -681,6 +1279,8 @@ function getWidgetIcon(widget: Widget): string {
                 <!-- Tile header -->
                 <div 
                   @click.stop="selectTileFromList(widget, tile.row, tile.column)"
+                  @dragover="handleTileContainerDragOver($event, widget, tileIndex)"
+                  @drop="handleTileContainerDrop($event, widget, tileIndex)"
                   :class="[
                     'flex items-center gap-2 px-2 py-1 text-[11px] font-medium cursor-pointer rounded transition-all',
                     tile.row === (widget.current_tile_row || 0) && tile.column === (widget.current_tile_column || 0)
@@ -698,25 +1298,35 @@ function getWidgetIcon(widget: Widget): string {
                 </div>
                 
                 <!-- Widgets in this tile -->
-                <ul v-if="tile.widgets && tile.widgets.length > 0" class="ml-4 space-y-0.5">
+                <ul 
+                  v-if="tile.widgets && tile.widgets.length > 0" 
+                  class="ml-4 space-y-0.5"
+                  @dragover="handleTileContainerDragOver($event, widget, tileIndex)"
+                  @drop="handleTileContainerDrop($event, widget, tileIndex)"
+                >
                   <li
                     v-for="childWidget in tile.widgets"
                     :key="childWidget.id"
+                    draggable="true"
+                    @dragstart="handleTileWidgetDragStart($event, widget, tileIndex, childWidget)"
+                    @dragover="handleTileWidgetDragOver($event, widget, tileIndex)"
+                    @drop="handleTileWidgetDrop($event, widget, tileIndex, childWidget)"
+                    @dragend="handleDragEnd"
                     @click.stop="selectTileWidget(widget, tileIndex, childWidget.id)"
                     :class="[
-                      'flex items-center justify-between px-2 py-1 rounded cursor-pointer text-[11px] transition-all group',
+                      'flex items-center justify-between px-2 py-1 rounded cursor-move text-[11px] transition-all group',
                       store.selectedWidgetId === childWidget.id
                         ? 'bg-indigo-600 text-white'
                         : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400'
                     ]"
                   >
-                    <span class="flex items-center gap-1.5 min-w-0 flex-1">
+                    <span class="flex items-center gap-1.5 min-w-0 flex-1 pointer-events-none">
                       <Icon :icon="getWidgetIcon(childWidget)" size="12" class="shrink-0" />
                       <span class="truncate">{{ childWidget.text || childWidget.type }}</span>
                     </span>
                     <button
                       @click.stop="removeTileWidget(widget, tileIndex, childWidget.id)"
-                      class="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all shrink-0"
+                      class="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all shrink-0 pointer-events-auto"
                       title="Delete widget"
                     >
                       <Icon icon="delete" size="12" />

@@ -588,10 +588,8 @@ function getWidgetStyle(widget: Widget) {
     <!-- Canvas Toolbar -->
     <div class="shrink-0 bg-white dark:bg-gray-900 border-b border-gray-300 dark:border-gray-700 px-4 py-2 flex items-center justify-between">
       <div class="flex items-center gap-4">
-        <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-200 uppercase tracking-wider">Canvas</h2>
-        
         <!-- Undo/Redo buttons -->
-        <div class="flex items-center gap-1 border-l border-gray-300 dark:border-gray-700 pl-4">
+        <div class="flex items-center gap-1">
           <button
             @click="store.undo()"
             :disabled="!store.canUndo"
