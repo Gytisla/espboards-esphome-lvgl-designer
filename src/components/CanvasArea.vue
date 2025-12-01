@@ -7,6 +7,9 @@ import Icon from './Icon.vue'
 
 const store = useDesignerStore()
 
+// Hover tracking for drop targets
+const hoveredDropTargetId = ref<string | null>(null)
+
 // Tab renaming
 const renamingTabId = ref<string | null>(null)
 const renamingTabName = ref('')
@@ -152,6 +155,34 @@ function handleCanvasDragOver(event: DragEvent) {
   if (event.dataTransfer) {
     event.dataTransfer.dropEffect = store.isDraggingWidget ? 'move' : 'copy'
   }
+  
+  // Track hover over droppable containers
+  const targetElement = document.elementFromPoint(event.clientX, event.clientY)
+  
+  // Check for tileview tile FIRST (most specific) - ONLY tiles are droppable in tileview!
+  const tileElement = targetElement?.closest('[data-tile-id]')
+  if (tileElement) {
+    hoveredDropTargetId.value = tileElement.getAttribute('data-tile-id')
+    return
+  }
+  
+  // Check for tabview (tabview itself is droppable)
+  const tabviewContent = targetElement?.closest('[data-tabview-content]')
+  if (tabviewContent) {
+    hoveredDropTargetId.value = tabviewContent.getAttribute('data-parent-id')
+    return
+  }
+  
+  // Not over a droppable container
+  hoveredDropTargetId.value = null
+}
+
+function handleCanvasDragLeave(event: DragEvent) {
+  // Clear hover state when leaving the canvas
+  const canvas = event.currentTarget as HTMLElement
+  if (event.target === canvas) {
+    hoveredDropTargetId.value = null
+  }
 }
 
 function handleCanvasDrop(event: DragEvent) {
@@ -270,6 +301,59 @@ function handleCanvasDrop(event: DragEvent) {
     return null
   }
   
+  // Helper function to remove a widget from any container
+  const removeWidgetFromContainer = (widgetId: string, widgets: Widget[] = store.widgets): boolean => {
+    // Check root level
+    const rootIndex = widgets.findIndex(w => w.id === widgetId)
+    if (rootIndex !== -1) {
+      widgets.splice(rootIndex, 1)
+      return true
+    }
+    
+    // Check in tabs and tiles recursively
+    for (const widget of widgets) {
+      // Check tabs
+      if (widget.tabs) {
+        for (const tab of widget.tabs) {
+          if (tab.widgets) {
+            const tabIndex = tab.widgets.findIndex((w: Widget) => w.id === widgetId)
+            if (tabIndex !== -1) {
+              tab.widgets.splice(tabIndex, 1)
+              widget.tabs = [...widget.tabs] // Trigger reactivity
+              return true
+            }
+            // Recursive check in nested widgets
+            if (removeWidgetFromContainer(widgetId, tab.widgets)) {
+              widget.tabs = [...widget.tabs]
+              return true
+            }
+          }
+        }
+      }
+      
+      // Check tiles
+      if (widget.tiles) {
+        for (const tile of widget.tiles) {
+          if (tile.widgets) {
+            const tileIndex = tile.widgets.findIndex((w: Widget) => w.id === widgetId)
+            if (tileIndex !== -1) {
+              tile.widgets.splice(tileIndex, 1)
+              widget.tiles = [...widget.tiles] // Trigger reactivity
+              return true
+            }
+            // Recursive check in nested widgets
+            if (removeWidgetFromContainer(widgetId, tile.widgets)) {
+              widget.tiles = [...widget.tiles]
+              return true
+            }
+          }
+        }
+      }
+    }
+    
+    return false
+  }
+  
   // Check if dropped onto containers - check most specific (innermost) first
   const targetElement = document.elementFromPoint(event.clientX, event.clientY)
   
@@ -304,10 +388,26 @@ function handleCanvasDrop(event: DragEvent) {
         const relativeY = (event.clientY - tileviewRect.top - tileviewPadding) / store.currentScale - store.dragOffsetY
         
         if (store.isDraggingWidget && store.selectedWidget) {
-          // Moving existing widget - check if it's already in this tile
+          // Moving existing widget
           const isAlreadyInTile = tile.widgets?.some((w: any) => w.id === store.selectedWidget?.id)
-          if (isAlreadyInTile) {
-            // Just update position
+          
+          if (!isAlreadyInTile) {
+            // Widget is being moved from another container to this tile
+            // Save reference to widget BEFORE removing it
+            const widgetToMove = store.selectedWidget
+            removeWidgetFromContainer(widgetToMove.id)
+            
+            // Reset position when moving to tileview (tiles typically don't use absolute positioning)
+            widgetToMove.x = 0
+            widgetToMove.y = 0
+            
+            // Add to this tile
+            if (!tile.widgets) tile.widgets = []
+            tile.widgets.push(widgetToMove)
+            tileviewWidget.tiles = [...tileviewWidget.tiles]
+            store.saveState()
+          } else {
+            // Just update position within the same tile
             store.selectedWidget.x = relativeX
             store.selectedWidget.y = relativeY
             store.saveState()
@@ -351,10 +451,26 @@ function handleCanvasDrop(event: DragEvent) {
       const relativeY = rawDropY - tabviewAbsPos.y - contentOffsetY - store.dragOffsetY
       
       if (store.isDraggingWidget && store.selectedWidget) {
-        // Moving existing widget - check if it's already in this tab
+        // Moving existing widget
         const isAlreadyInTab = activeTab.widgets?.some((w: any) => w.id === store.selectedWidget?.id)
-        if (isAlreadyInTab) {
-          // Just update position
+        
+        if (!isAlreadyInTab) {
+          // Widget is being moved from another container to this tab
+          // Save reference to widget BEFORE removing it
+          const widgetToMove = store.selectedWidget
+          removeWidgetFromContainer(widgetToMove.id)
+          
+          // Reset position when moving to tab (tabs typically don't use absolute positioning)
+          widgetToMove.x = 0
+          widgetToMove.y = 0
+          
+          // Add to this tab
+          if (!activeTab.widgets) activeTab.widgets = []
+          activeTab.widgets.push(widgetToMove)
+          tabviewWidget.tabs = [...tabviewWidget.tabs]
+          store.saveState()
+        } else {
+          // Just update position within the same tab
           store.selectedWidget.x = relativeX
           store.selectedWidget.y = relativeY
           store.saveState()
@@ -368,11 +484,28 @@ function handleCanvasDrop(event: DragEvent) {
       }
     }
   } else {
-    // Normal drop on canvas
+    // Normal drop on canvas (root level)
     if (store.isDraggingWidget && store.selectedWidget) {
-      store.selectedWidget.x = dropX
-      store.selectedWidget.y = dropY
-      store.saveState()
+      // Check if widget is already at root level
+      const isAlreadyAtRoot = store.widgets.some(w => w.id === store.selectedWidget?.id)
+      
+      if (!isAlreadyAtRoot) {
+        // Widget is being moved from a container to root
+        // Save reference to widget BEFORE removing it
+        const widgetToMove = store.selectedWidget
+        removeWidgetFromContainer(widgetToMove.id)
+        
+        // Add to root
+        widgetToMove.x = dropX
+        widgetToMove.y = dropY
+        store.widgets.push(widgetToMove)
+        store.saveState()
+      } else {
+        // Just update position at root level
+        store.selectedWidget.x = dropX
+        store.selectedWidget.y = dropY
+        store.saveState()
+      }
     } else if (store.draggedWidgetType) {
       store.addWidget(store.draggedWidgetType, dropX, dropY)
     }
@@ -383,6 +516,7 @@ function handleCanvasDrop(event: DragEvent) {
   store.draggedWidgetType = null
   store.dragOffsetX = 0
   store.dragOffsetY = 0
+  hoveredDropTargetId.value = null
 }
 
 function handleWidgetClick(event: MouseEvent, widget: Widget) {
@@ -671,6 +805,7 @@ function getWidgetStyle(widget: Widget) {
           backgroundSize: '10px 10px'
         }"
         @dragover="handleCanvasDragOver"
+        @dragleave="handleCanvasDragLeave"
         @drop="handleCanvasDrop"
         @click="$event.target === $event.currentTarget && store.selectWidget(null)"
         class="relative bg-gray-900 border-2 border-gray-700 shadow-2xl transition-all duration-200"
@@ -694,7 +829,7 @@ function getWidgetStyle(widget: Widget) {
           @click="handleWidgetClick($event, widget)"
           @dragstart="handleWidgetDragStart($event, widget)"
         >
-          <WidgetRenderer :widget="widget" />
+          <WidgetRenderer :widget="widget" :hoveredDropTargetId="hoveredDropTargetId" />
           
           <!-- Resize handle (bottom-right corner) -->
           <div

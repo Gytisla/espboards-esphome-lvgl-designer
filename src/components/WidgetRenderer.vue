@@ -9,6 +9,7 @@ const store = useDesignerStore()
 interface Props {
   widget: Widget
   isNested?: boolean
+  hoveredDropTargetId?: string | null
 }
 
 const props = defineProps<Props>()
@@ -711,11 +712,14 @@ function getBarFillWidth(widget: Widget): number {
   <!-- Tileview Widget -->
   <div 
     v-else-if="widget.type === 'tileview'" 
-    class="w-full h-full relative overflow-hidden rounded border"
+    class="w-full h-full relative overflow-hidden rounded border transition-all"
+    :class="{
+      'ring-2 ring-green-400 border-green-400': props.hoveredDropTargetId === widget.id
+    }"
     :style="{
       backgroundColor: widget.bg_color || '#1e293b',
       opacity: (widget.bg_opa || 100) / 100,
-      borderColor: widget.border_color || '#475569',
+      borderColor: props.hoveredDropTargetId === widget.id ? '#4ade80' : (widget.border_color || '#475569'),
       borderWidth: `${widget.border_width || 1}px`,
       borderRadius: `${widget.radius || 4}px`,
       padding: `${widget.pad_all || 4}px`
@@ -736,7 +740,8 @@ function getBarFillWidth(widget: Widget): number {
           class="text-[10px] rounded transition-all relative overflow-hidden"
           :class="{
             'bg-indigo-600/40 border-2 border-indigo-500': tile.row === (widget.current_tile_row || 0) && tile.column === (widget.current_tile_column || 0),
-            'bg-gray-700/50 border border-gray-600/50': tile.row !== (widget.current_tile_row || 0) || tile.column !== (widget.current_tile_column || 0)
+            'bg-green-600/40 border-2 border-green-400 ring-2 ring-green-400': props.hoveredDropTargetId === tile.id,
+            'bg-gray-700/50 border border-gray-600/50': tile.row !== (widget.current_tile_row || 0) || tile.column !== (widget.current_tile_column || 0) && props.hoveredDropTargetId !== tile.id
           }"
           :style="{
             gridRow: tile.row + 1,
@@ -770,7 +775,7 @@ function getBarFillWidth(widget: Widget): number {
               :data-widget-id="childWidget.id"
               :data-widget-type="childWidget.type"
               :title="`${childWidget.type} (nested in tile ${tile.id})`">
-              <WidgetRenderer :widget="childWidget" :isNested="true" />
+              <WidgetRenderer :widget="childWidget" :isNested="true" :hoveredDropTargetId="props.hoveredDropTargetId" />
               
               <!-- Resize handle for nested widgets -->
               <div
@@ -983,7 +988,10 @@ function getBarFillWidth(widget: Widget): number {
     </div>
     <!-- Tab content area -->
     <div 
-      class="flex-1 relative overflow-hidden" 
+      class="flex-1 relative overflow-hidden transition-all" 
+      :class="{
+        'ring-2 ring-green-400 border border-green-400': props.hoveredDropTargetId === widget.id
+      }"
       :data-tabview-content="true"
       :data-parent-id="widget.id">
       <!-- Nested widgets in active tab -->
@@ -1010,7 +1018,7 @@ function getBarFillWidth(widget: Widget): number {
           :data-widget-id="childWidget.id"
           :data-widget-type="childWidget.type"
           :title="`${childWidget.type} (nested in tab)`">
-          <WidgetRenderer :widget="childWidget" :isNested="true" />
+          <WidgetRenderer :widget="childWidget" :isNested="true" :hoveredDropTargetId="props.hoveredDropTargetId" />
           
           <!-- Resize handle for nested widgets -->
           <div
