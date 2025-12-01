@@ -62,7 +62,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="h-screen w-screen overflow-hidden flex flex-col bg-gray-900">
+  <div class="h-screen w-screen overflow-hidden flex flex-col bg-gray-50 dark:bg-gray-900">
     <!-- Fixed Header -->
     <DesignerHeader />
     
@@ -72,7 +72,7 @@ onMounted(() => {
       <Toolbox />
       
       <!-- Center Canvas Area -->
-      <div class="flex-1 flex flex-col overflow-hidden bg-gray-800">
+      <div class="flex-1 flex flex-col overflow-hidden bg-gray-100 dark:bg-gray-800">
         <CanvasArea />
       </div>
       

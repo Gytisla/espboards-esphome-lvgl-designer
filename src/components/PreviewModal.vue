@@ -191,21 +191,21 @@ function getWidgetStyle(widget: Widget) {
         class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
         @click.self="handleClose"
       >
-        <div class="w-full h-full max-w-[95vw] max-h-[95vh] bg-gray-900 rounded-lg shadow-2xl flex flex-col overflow-hidden">
+        <div class="w-full h-full max-w-[95vw] max-h-[95vh] bg-white dark:bg-gray-900 rounded-lg shadow-2xl flex flex-col overflow-hidden">
           <!-- Modal Header -->
-          <div class="shrink-0 bg-gray-950 border-b border-gray-700 px-6 py-4 flex items-center justify-between">
+          <div class="shrink-0 bg-gray-100 dark:bg-gray-950 border-b border-gray-300 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <Icon icon="eye" size="24" class="text-indigo-400" />
+              <Icon icon="eye" size="24" class="text-indigo-600 dark:text-indigo-400" />
               <div>
-                <h2 class="text-lg font-bold text-white">Preview Mode</h2>
-                <p class="text-xs text-gray-400">Interactive view - Drag arcs & sliders, click buttons & switches</p>
+                <h2 class="text-lg font-bold text-gray-900 dark:text-white">Preview Mode</h2>
+                <p class="text-xs text-gray-600 dark:text-gray-400">Interactive view - Drag arcs & sliders, click buttons & switches</p>
               </div>
             </div>
             
             <div class="flex items-center gap-4">
               <!-- Scale Controls -->
               <div class="flex items-center gap-2">
-                <span class="text-xs font-medium text-gray-400">Zoom:</span>
+                <span class="text-xs font-medium text-gray-600 dark:text-gray-400">Zoom:</span>
                 <div class="flex gap-1">
                   <button
                     v-for="scale in previewScales"
@@ -215,7 +215,7 @@ function getWidgetStyle(widget: Widget) {
                       'px-2 py-1 text-xs rounded border transition-colors',
                       previewScale === scale
                         ? 'bg-indigo-600 text-white border-indigo-500'
-                        : 'bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700'
+                        : 'bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:hover:bg-gray-700'
                     ]"
                   >
                     {{ scale }}x
@@ -225,7 +225,7 @@ function getWidgetStyle(widget: Widget) {
               
               <button
                 @click="handleClose"
-                class="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+                class="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg transition-colors"
                 title="Close Preview"
               >
                 <Icon icon="close" size="24" />
@@ -234,7 +234,7 @@ function getWidgetStyle(widget: Widget) {
           </div>
 
           <!-- Preview Canvas Area -->
-          <div class="flex-1 overflow-auto flex items-center justify-center p-8 bg-gray-800">
+          <div class="flex-1 overflow-auto flex items-center justify-center p-8 bg-gray-200 dark:bg-gray-800">
             <div
               id="preview-canvas"
               class="relative bg-gray-900 border-2 border-gray-700 shadow-2xl"

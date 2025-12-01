@@ -509,31 +509,31 @@ function getWidgetIcon(widget: Widget): string {
 </script>
 
 <template>
-  <aside class="bg-gray-900 border-l border-gray-700 flex shrink-0 overflow-hidden relative" :style="{ width: sidebarWidth + 'px' }">
+  <aside class="bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700 flex shrink-0 overflow-hidden relative" :style="{ width: sidebarWidth + 'px' }">
     <!-- Horizontal Resize Handle (Left Edge) -->
     <div
       @mousedown="startResizeWidth"
-      class="absolute left-0 top-0 bottom-0 w-1 bg-gray-700 hover:bg-indigo-500 cursor-ew-resize transition-colors z-10 group"
+      class="absolute left-0 top-0 bottom-0 w-1 bg-gray-300 dark:bg-gray-700 hover:bg-indigo-500 cursor-ew-resize transition-colors z-10 group"
       :class="{ 'bg-indigo-500': isResizingWidth }"
       title="Drag to resize sidebar width"
     >
-      <div class="absolute inset-y-0 left-1/2 -translate-x-1/2 w-0.5 bg-gray-600 group-hover:bg-indigo-400 transition-colors"></div>
+      <div class="absolute inset-y-0 left-1/2 -translate-x-1/2 w-0.5 bg-gray-400 dark:bg-gray-600 group-hover:bg-indigo-400 transition-colors"></div>
     </div>
 
     <!-- Sidebar Content -->
     <div class="flex-1 flex flex-col overflow-hidden">
       <!-- Elements List Section -->
-      <div class="shrink-0 border-b border-gray-700" :style="{ height: elementsHeight + 'px' }">
-        <div class="px-4 py-3 border-b border-gray-700">
-          <h2 class="text-sm font-semibold text-gray-200 uppercase tracking-wider">
-            Elements <span class="text-indigo-400">({{ store.widgetCount }})</span>
+      <div class="shrink-0 border-b border-gray-200 dark:border-gray-700" :style="{ height: elementsHeight + 'px' }">
+        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+          <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-200 uppercase tracking-wider">
+            Elements <span class="text-indigo-600 dark:text-indigo-400">({{ store.widgetCount }})</span>
           </h2>
         </div>
       
       <div class="h-[calc(100%-49px)] overflow-y-auto custom-scrollbar">
         <div
           v-if="store.widgetCount === 0"
-          class="text-xs text-gray-500 italic text-center py-8 px-4"
+          class="text-xs text-gray-400 dark:text-gray-500 italic text-center py-8 px-4"
         >
           No widgets yet. Drag from toolbox!
         </div>
@@ -546,7 +546,7 @@ function getWidgetIcon(widget: Widget): string {
                 'flex items-center justify-between p-2 rounded-lg cursor-pointer text-xs transition-all group',
                 store.selectedWidgetId === widget.id
                   ? 'bg-indigo-600 text-white'
-                  : 'hover:bg-gray-800 text-gray-300'
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'
               ]"
             >
               <span class="flex items-center gap-2 min-w-0 flex-1">
@@ -569,10 +569,10 @@ function getWidgetIcon(widget: Widget): string {
             </div>
 
             <!-- Nested tabs and widgets for tabview -->
-            <ul v-if="widget.type === 'tabview' && widget.tabs && widget.tabs.length > 0" class="ml-4 mt-1 space-y-1 border-l-2 border-gray-700 pl-2">
+            <ul v-if="widget.type === 'tabview' && widget.tabs && widget.tabs.length > 0" class="ml-4 mt-1 space-y-1 border-l-2 border-gray-300 dark:border-gray-700 pl-2">
               <li v-for="(tab, tabIndex) in widget.tabs" :key="tab.id" class="space-y-1">
                 <!-- Tab header -->
-                <div class="flex items-center gap-2 px-2 py-1 text-[11px] text-gray-400 font-medium">
+                <div class="flex items-center gap-2 px-2 py-1 text-[11px] text-gray-500 dark:text-gray-400 font-medium">
                   <Icon icon="tab" size="14" class="shrink-0" />
                   <span class="truncate">{{ tab.name }}</span>
                   <span v-if="tab.widgets && tab.widgets.length > 0" class="text-[9px] opacity-60">
@@ -614,7 +614,7 @@ function getWidgetIcon(widget: Widget): string {
                     </div>
 
                     <!-- If this child widget is a tileview, show its tiles -->
-                    <ul v-if="childWidget.type === 'tileview' && childWidget.tiles && childWidget.tiles.length > 0" class="ml-4 mt-1 space-y-1 border-l-2 border-gray-700 pl-2">
+                    <ul v-if="childWidget.type === 'tileview' && childWidget.tiles && childWidget.tiles.length > 0" class="ml-4 mt-1 space-y-1 border-l-2 border-gray-300 dark:border-gray-700 pl-2">
                       <li v-for="(tile, nestedTileIndex) in childWidget.tiles" :key="tile.id" class="space-y-1">
                         <!-- Tile header -->
                         <div 
@@ -623,7 +623,7 @@ function getWidgetIcon(widget: Widget): string {
                             'flex items-center gap-2 px-2 py-1 text-[10px] font-medium cursor-pointer rounded transition-all group',
                             tile.row === (childWidget.current_tile_row || 0) && tile.column === (childWidget.current_tile_column || 0)
                               ? 'bg-indigo-600 text-white'
-                              : 'text-gray-400 hover:bg-gray-800'
+                              : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                           ]"
                           :title="`Click to view this tile [${tile.row},${tile.column}]`"
                         >
@@ -652,7 +652,7 @@ function getWidgetIcon(widget: Widget): string {
                               'flex items-center justify-between px-2 py-0.5 rounded cursor-pointer text-[10px] transition-all group',
                               store.selectedWidgetId === tileWidget.id
                                 ? 'bg-indigo-600 text-white'
-                                : 'hover:bg-gray-800 text-gray-400'
+                                : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400'
                             ]"
                           >
                             <span class="flex items-center gap-1 min-w-0 flex-1">
@@ -676,7 +676,7 @@ function getWidgetIcon(widget: Widget): string {
             </ul>
 
             <!-- Nested tiles and widgets for tileview -->
-            <ul v-if="widget.type === 'tileview' && widget.tiles && widget.tiles.length > 0" class="ml-4 mt-1 space-y-1 border-l-2 border-gray-700 pl-2">
+            <ul v-if="widget.type === 'tileview' && widget.tiles && widget.tiles.length > 0" class="ml-4 mt-1 space-y-1 border-l-2 border-gray-300 dark:border-gray-700 pl-2">
               <li v-for="(tile, tileIndex) in widget.tiles" :key="tile.id" class="space-y-1">
                 <!-- Tile header -->
                 <div 
@@ -685,7 +685,7 @@ function getWidgetIcon(widget: Widget): string {
                     'flex items-center gap-2 px-2 py-1 text-[11px] font-medium cursor-pointer rounded transition-all',
                     tile.row === (widget.current_tile_row || 0) && tile.column === (widget.current_tile_column || 0)
                       ? 'bg-indigo-600 text-white'
-                      : 'text-gray-400 hover:bg-gray-800'
+                      : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                   ]"
                   :title="`Click to view this tile [${tile.row},${tile.column}]`"
                 >
@@ -707,7 +707,7 @@ function getWidgetIcon(widget: Widget): string {
                       'flex items-center justify-between px-2 py-1 rounded cursor-pointer text-[11px] transition-all group',
                       store.selectedWidgetId === childWidget.id
                         ? 'bg-indigo-600 text-white'
-                        : 'hover:bg-gray-800 text-gray-400'
+                        : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400'
                     ]"
                   >
                     <span class="flex items-center gap-1.5 min-w-0 flex-1">
@@ -733,23 +733,23 @@ function getWidgetIcon(widget: Widget): string {
     <!-- Resize Handle -->
     <div
       @mousedown="startResize"
-      class="h-1 bg-gray-700 hover:bg-indigo-500 cursor-ns-resize transition-colors relative group"
+      class="h-1 bg-gray-300 dark:bg-gray-700 hover:bg-indigo-500 cursor-ns-resize transition-colors relative group"
       :class="{ 'bg-indigo-500': isResizing }"
       title="Drag to resize"
     >
-      <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-0.5 bg-gray-600 group-hover:bg-indigo-400 transition-colors"></div>
+      <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-0.5 bg-gray-400 dark:bg-gray-600 group-hover:bg-indigo-400 transition-colors"></div>
     </div>
 
     <!-- Properties Panel Section -->
     <div class="flex-1 flex flex-col overflow-hidden">
-      <div class="px-4 py-3 border-b border-gray-700">
-        <h2 class="text-sm font-semibold text-gray-200 uppercase tracking-wider">
+      <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-200 uppercase tracking-wider">
           Properties
         </h2>
       </div>
       
       <div v-if="!store.selectedWidget" class="flex-1 flex items-center justify-center p-4">
-        <p class="text-xs text-gray-500 italic text-center">
+        <p class="text-xs text-gray-400 dark:text-gray-500 italic text-center">
           Select a widget to edit properties
         </p>
       </div>
@@ -758,21 +758,21 @@ function getWidgetIcon(widget: Widget): string {
         <!-- Position -->
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="block text-xs font-medium text-gray-400 mb-1">X Position</label>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">X Position</label>
             <input
               type="number"
               :value="store.selectedWidget.x"
               @input="handleNumberInput('x', $event)"
-              class="w-full px-2 py-1.5 text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
           </div>
           <div>
-            <label class="block text-xs font-medium text-gray-400 mb-1">Y Position</label>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Y Position</label>
             <input
               type="number"
               :value="store.selectedWidget.y"
               @input="handleNumberInput('y', $event)"
-              class="w-full px-2 py-1.5 text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
           </div>
         </div>
@@ -780,22 +780,22 @@ function getWidgetIcon(widget: Widget): string {
         <!-- Size -->
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="block text-xs font-medium text-gray-400 mb-1">Width</label>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Width</label>
             <input
               type="number"
               :value="store.selectedWidget.width"
               @input="handleNumberInput('width', $event)"
-              class="w-full px-2 py-1.5 text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               placeholder="auto"
             />
           </div>
           <div>
-            <label class="block text-xs font-medium text-gray-400 mb-1">Height</label>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Height</label>
             <input
               type="number"
               :value="store.selectedWidget.height"
               @input="handleNumberInput('height', $event)"
-              class="w-full px-2 py-1.5 text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               placeholder="auto"
             />
           </div>
@@ -803,21 +803,21 @@ function getWidgetIcon(widget: Widget): string {
 
         <!-- Text (if applicable) -->
         <div v-if="'text' in store.selectedWidget">
-          <label class="block text-xs font-medium text-gray-400 mb-1">Text</label>
+          <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Text</label>
           <input
             type="text"
             :value="store.selectedWidget.text"
             @input="handleInputChange('text', ($event.target as HTMLInputElement).value)"
-            class="w-full px-2 py-1.5 text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           />
         </div>
 
         <!-- Colors Section -->
-        <div v-if="['button', 'label'].includes(store.selectedWidget.type)" class="space-y-3 border-t border-gray-700 pt-3">
+        <div v-if="['button', 'label'].includes(store.selectedWidget.type)" class="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-3">
           <div class="text-xs font-semibold text-gray-300 uppercase tracking-wider">Colors</div>
           
           <div v-if="'text_color' in store.selectedWidget || store.selectedWidget.type === 'button' || store.selectedWidget.type === 'label'">
-            <label class="block text-xs font-medium text-gray-400 mb-1">Text Color</label>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Text Color</label>
             <div class="flex gap-2">
               <input
                 type="color"
@@ -831,13 +831,13 @@ function getWidgetIcon(widget: Widget): string {
                 :value="store.selectedWidget.text_color || '#ffffff'"
                 @input="handleInputChange('text_color', ($event.target as HTMLInputElement).value)"
                 placeholder="#ffffff"
-                class="flex-1 px-2 py-1.5 text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono"
+                class="flex-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono"
               />
             </div>
           </div>
           
           <div v-if="'bg_color' in store.selectedWidget || store.selectedWidget.type === 'button'">
-            <label class="block text-xs font-medium text-gray-400 mb-1">Background Color</label>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Background Color</label>
             <div class="flex gap-2">
               <input
                 type="color"
@@ -851,7 +851,7 @@ function getWidgetIcon(widget: Widget): string {
                 :value="store.selectedWidget.bg_color || '#4f46e5'"
                 @input="handleInputChange('bg_color', ($event.target as HTMLInputElement).value)"
                 placeholder="#4f46e5"
-                class="flex-1 px-2 py-1.5 text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono"
+                class="flex-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono"
               />
             </div>
           </div>
@@ -859,11 +859,11 @@ function getWidgetIcon(widget: Widget): string {
 
         <!-- Text Align -->
         <div v-if="'text_align' in store.selectedWidget">
-          <label class="block text-xs font-medium text-gray-400 mb-1">Text Align</label>
+          <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Text Align</label>
           <select
             :value="store.selectedWidget.text_align"
             @change="handleInputChange('text_align', ($event.target as HTMLSelectElement).value)"
-            class="w-full px-2 py-1.5 text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           >
             <option value="LEFT">Left</option>
             <option value="CENTER">Center</option>
@@ -874,30 +874,30 @@ function getWidgetIcon(widget: Widget): string {
         <!-- Min/Max/Value (for sliders, bars, etc) -->
         <div v-if="'min_value' in store.selectedWidget" class="grid grid-cols-3 gap-2">
           <div>
-            <label class="block text-xs font-medium text-gray-400 mb-1">Min</label>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Min</label>
             <input
               type="number"
               :value="store.selectedWidget.min_value"
               @input="handleNumberInput('min_value', $event)"
-              class="w-full px-2 py-1.5 text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
           </div>
           <div>
-            <label class="block text-xs font-medium text-gray-400 mb-1">Max</label>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Max</label>
             <input
               type="number"
               :value="store.selectedWidget.max_value"
               @input="handleNumberInput('max_value', $event)"
-              class="w-full px-2 py-1.5 text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
           </div>
           <div>
-            <label class="block text-xs font-medium text-gray-400 mb-1">Value</label>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Value</label>
             <input
               type="number"
               :value="store.selectedWidget.value"
               @input="handleNumberInput('value', $event)"
-              class="w-full px-2 py-1.5 text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
           </div>
         </div>
@@ -915,28 +915,28 @@ function getWidgetIcon(widget: Widget): string {
 
         <!-- Options (for dropdowns/rollers) -->
         <div v-if="'options' in store.selectedWidget">
-          <label class="block text-xs font-medium text-gray-400 mb-1">Options (comma-separated)</label>
+          <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Options (comma-separated)</label>
           <input
             type="text"
             :value="store.selectedWidget.options"
             @input="handleInputChange('options', ($event.target as HTMLInputElement).value)"
-            class="w-full px-2 py-1.5 text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           />
         </div>
 
         <!-- Angle (for arc, meter) -->
         <div v-if="'angle' in store.selectedWidget">
-          <label class="block text-xs font-medium text-gray-400 mb-1">Angle</label>
+          <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Angle</label>
           <input
             type="number"
             :value="store.selectedWidget.angle"
             @input="handleNumberInput('angle', $event)"
-            class="w-full px-2 py-1.5 text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           />
         </div>
 
         <!-- Arc-specific properties -->
-        <div v-if="store.selectedWidget.type === 'arc'" class="space-y-3 border-t border-gray-700 pt-3">
+        <div v-if="store.selectedWidget.type === 'arc'" class="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-3">
           <div class="text-xs font-semibold text-gray-300 uppercase tracking-wider">Arc Settings</div>
           
           <!-- Adjustable -->
@@ -952,11 +952,11 @@ function getWidgetIcon(widget: Widget): string {
           
           <!-- Mode -->
           <div>
-            <label class="block text-xs font-medium text-gray-400 mb-1">Mode</label>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Mode</label>
             <select
               :value="store.selectedWidget.arc_mode || 'NORMAL'"
               @change="handleInputChange('arc_mode', ($event.target as HTMLSelectElement).value)"
-              class="w-full px-2 py-1.5 text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             >
               <option value="NORMAL">Normal</option>
               <option value="REVERSE">Reverse</option>
@@ -967,46 +967,46 @@ function getWidgetIcon(widget: Widget): string {
           <!-- Angles -->
           <div class="grid grid-cols-2 gap-2">
             <div>
-              <label class="block text-xs font-medium text-gray-400 mb-1">Start Angle</label>
+              <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Start Angle</label>
               <input
                 type="number"
                 :value="store.selectedWidget.start_angle !== undefined ? store.selectedWidget.start_angle : 135"
                 @input="handleNumberInput('start_angle', $event)"
                 min="0"
                 max="360"
-                class="w-full px-2 py-1.5 text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
             </div>
             <div>
-              <label class="block text-xs font-medium text-gray-400 mb-1">End Angle</label>
+              <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">End Angle</label>
               <input
                 type="number"
                 :value="store.selectedWidget.end_angle !== undefined ? store.selectedWidget.end_angle : 45"
                 @input="handleNumberInput('end_angle', $event)"
                 min="0"
                 max="360"
-                class="w-full px-2 py-1.5 text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
             </div>
           </div>
           
           <!-- Rotation -->
           <div>
-            <label class="block text-xs font-medium text-gray-400 mb-1">Rotation</label>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Rotation</label>
             <input
               type="number"
               :value="store.selectedWidget.rotation || 0"
               @input="handleNumberInput('rotation', $event)"
               min="0"
               max="360"
-              class="w-full px-2 py-1.5 text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
           </div>
           
           <div class="text-xs font-semibold text-gray-300 uppercase tracking-wider mt-3">Arc Indicator</div>
           
           <div>
-            <label class="block text-xs font-medium text-gray-400 mb-1">Color</label>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Color</label>
             <div class="flex gap-2">
               <!-- Color Picker -->
               <div class="relative">
@@ -1024,19 +1024,19 @@ function getWidgetIcon(widget: Widget): string {
                 :value="store.selectedWidget.indicator?.arc_color || store.selectedWidget.arc_color || '0x818cf8'"
                 @input="handleArcColorInput('arc_color', $event)"
                 placeholder="0xF000FF"
-                class="flex-1 px-2 py-1.5 text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono"
+                class="flex-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono"
               />
             </div>
             <p class="text-[10px] text-gray-500 mt-1">Use color picker or enter 0xRRGGBB format</p>
           </div>
           
           <div>
-            <label class="block text-xs font-medium text-gray-400 mb-1">Width</label>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Width</label>
             <input
               type="number"
               :value="store.selectedWidget.indicator?.arc_width || store.selectedWidget.arc_width || 8"
               @input="handleArcWidthInput($event)"
-              class="w-full px-2 py-1.5 text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
           </div>
           
@@ -1053,11 +1053,11 @@ function getWidgetIcon(widget: Widget): string {
         </div>
 
         <!-- Line-specific properties -->
-        <div v-if="store.selectedWidget.type === 'line' && 'line_color' in store.selectedWidget" class="space-y-3 border-t border-gray-700 pt-3">
+        <div v-if="store.selectedWidget.type === 'line' && 'line_color' in store.selectedWidget" class="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-3">
           <div class="text-xs font-semibold text-gray-300 uppercase tracking-wider">Line Style</div>
           
           <div>
-            <label class="block text-xs font-medium text-gray-400 mb-1">Color</label>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Color</label>
             <div class="flex gap-2">
               <!-- Color Picker -->
               <div class="relative">
@@ -1075,33 +1075,33 @@ function getWidgetIcon(widget: Widget): string {
                 :value="store.selectedWidget.line_color || '#333333'"
                 @input="handleInputChange('line_color', ($event.target as HTMLInputElement).value)"
                 placeholder="#333333"
-                class="flex-1 px-2 py-1.5 text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono"
+                class="flex-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono"
               />
             </div>
             <p class="text-[10px] text-gray-500 mt-1">Use color picker or enter #RRGGBB format</p>
           </div>
           
           <div v-if="'line_width' in store.selectedWidget">
-            <label class="block text-xs font-medium text-gray-400 mb-1">Width</label>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Width</label>
             <input
               type="number"
               :value="store.selectedWidget.line_width || 2"
               @input="handleNumberInput('line_width', $event)"
-              class="w-full px-2 py-1.5 text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
           </div>
         </div>
 
         <!-- Tabview-specific properties -->
-        <div v-if="store.selectedWidget.type === 'tabview'" class="space-y-3 border-t border-gray-700 pt-3">
-          <div class="text-xs font-semibold text-gray-300 uppercase tracking-wider">Tab View Settings</div>
+        <div v-if="store.selectedWidget.type === 'tabview'" class="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-3">
+          <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Tab View Settings</div>
           
           <div>
-            <label class="block text-xs font-medium text-gray-400 mb-1">Tab Position</label>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Tab Position</label>
             <select
               :value="store.selectedWidget.tab_pos || 'TOP'"
               @change="handleInputChange('tab_pos', ($event.target as HTMLSelectElement).value)"
-              class="w-full px-2 py-1.5 text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             >
               <option value="TOP">Top</option>
               <option value="BOTTOM">Bottom</option>
@@ -1111,12 +1111,12 @@ function getWidgetIcon(widget: Widget): string {
           </div>
 
           <div>
-            <label class="block text-xs font-medium text-gray-400 mb-1">Tab Size (px)</label>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Tab Size (px)</label>
             <input
               type="number"
               :value="store.selectedWidget.tab_size || 40"
               @input="handleNumberInput('tab_size', $event)"
-              class="w-full px-2 py-1.5 text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
           </div>
 
@@ -1126,27 +1126,30 @@ function getWidgetIcon(widget: Widget): string {
               type="checkbox"
               :checked="store.selectedWidget.spread_tabs || false"
               @change="handleInputChange('spread_tabs', ($event.target as HTMLInputElement).checked)"
-              class="rounded border-gray-600 text-indigo-600 bg-gray-800 focus:ring-2 focus:ring-indigo-500"
+              class="rounded border-gray-300 dark:border-gray-600 text-indigo-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-indigo-500"
             />
-            <label class="text-xs font-medium text-gray-400">Spread Tabs (Full Width)</label>
+            <label class="text-xs font-medium text-gray-600 dark:text-gray-400">Spread Tabs (Full Width)</label>
           </div>
 
           <div>
-            <label class="block text-xs font-medium text-gray-400 mb-2">Tabs</label>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Tabs</label>
             <div v-if="store.selectedWidget.tabs && store.selectedWidget.tabs.length > 0" class="space-y-2 mb-2">
               <div v-for="(tab, index) in store.selectedWidget.tabs" :key="tab.id" 
-                class="flex items-center gap-2 p-2 bg-gray-800 rounded border"
-                :class="index === (store.selectedWidget.selectedTabIndex || 0) ? 'border-indigo-500' : 'border-gray-700'">
+                class="flex items-center gap-2 p-2 rounded border"
+                :class="[
+                  'bg-gray-100 dark:bg-gray-800',
+                  index === (store.selectedWidget.selectedTabIndex || 0) ? 'border-indigo-500' : 'border-gray-300 dark:border-gray-700'
+                ]">
                 <input
                   type="text"
                   :value="tab.name"
                   @input="handleTabNameChange(index, ($event.target as HTMLInputElement).value)"
-                  class="flex-1 px-2 py-1 text-xs bg-gray-900 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  class="flex-1 px-2 py-1 text-xs bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 />
                 <button
                   @click="setActiveTab(index)"
                   class="px-2 py-1 text-xs rounded transition-colors"
-                  :class="index === (store.selectedWidget.selectedTabIndex || 0) ? 'bg-indigo-600 text-white' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'"
+                  :class="index === (store.selectedWidget.selectedTabIndex || 0) ? 'bg-indigo-600 text-white' : 'bg-gray-300 dark:bg-gray-700 text-gray-700 dark:text-gray-400 hover:bg-gray-400 dark:hover:bg-gray-600'"
                   title="Set as active tab">
                   <Icon :icon="index === (store.selectedWidget.selectedTabIndex || 0) ? 'check' : 'eye'" class="w-3 h-3" />
                 </button>
@@ -1169,11 +1172,11 @@ function getWidgetIcon(widget: Widget): string {
         </div>
 
         <!-- Roller & Dropdown Options Management -->
-        <div v-if="store.selectedWidget.type === 'roller' || store.selectedWidget.type === 'dropdown'" class="space-y-3 border-t border-gray-700 pt-3">
-          <div class="text-xs font-semibold text-gray-300 uppercase tracking-wider">Options</div>
+        <div v-if="store.selectedWidget.type === 'roller' || store.selectedWidget.type === 'dropdown'" class="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-3">
+          <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Options</div>
           
           <div>
-            <label class="block text-xs font-medium text-gray-400 mb-2">Option List</label>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Option List</label>
             <div v-if="store.selectedWidget.options && store.selectedWidget.options.length > 0" class="space-y-2 mb-2">
               <div v-for="(option, index) in store.selectedWidget.options" :key="index"
                 class="flex items-center gap-2">
@@ -1181,7 +1184,7 @@ function getWidgetIcon(widget: Widget): string {
                   type="text"
                   :value="option"
                   @input="updateOption(index, ($event.target as HTMLInputElement).value)"
-                  class="flex-1 px-2 py-1.5 text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
+                  class="flex-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
                   placeholder="Option text"
                 />
                 <button
@@ -1203,23 +1206,23 @@ function getWidgetIcon(widget: Widget): string {
         </div>
 
         <!-- Switch-specific properties -->
-        <div v-if="store.selectedWidget.type === 'switch'" class="space-y-3 border-t border-gray-700 pt-3">
-          <div class="text-xs font-semibold text-gray-300 uppercase tracking-wider">Switch Settings</div>
+        <div v-if="store.selectedWidget.type === 'switch'" class="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-3">
+          <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Switch Settings</div>
           
           <div>
-            <div class="text-xs font-medium text-gray-400 mb-2">Indicator (Checked State)</div>
-            <div class="space-y-2 pl-2 border-l-2 border-gray-700">
+            <div class="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Indicator (Checked State)</div>
+            <div class="space-y-2 pl-2 border-l-2 border-gray-300 dark:border-gray-700">
               <div>
-                <label class="block text-xs font-medium text-gray-500 mb-1">Background Color</label>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">Background Color</label>
                 <input
                   type="color"
                   :value="store.selectedWidget.indicator?.bg_color || '#4F46E5'"
                   @input="handleIndicatorChange('bg_color', ($event.target as HTMLInputElement).value)"
-                  class="w-full h-8 rounded border border-gray-600 bg-gray-800 cursor-pointer"
+                  class="w-full h-8 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 cursor-pointer"
                 />
               </div>
               <div>
-                <label class="block text-xs font-medium text-gray-500 mb-1">Opacity (%)</label>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">Opacity (%)</label>
                 <input
                   type="range"
                   min="0"
@@ -1229,32 +1232,32 @@ function getWidgetIcon(widget: Widget): string {
                   @input="handleIndicatorChange('bg_opa', Number(($event.target as HTMLInputElement).value))"
                   class="w-full"
                 />
-                <div class="text-xs text-gray-500 mt-1">{{ store.selectedWidget.indicator?.bg_opa || 100 }}%</div>
+                <div class="text-xs text-gray-600 dark:text-gray-500 mt-1">{{ store.selectedWidget.indicator?.bg_opa || 100 }}%</div>
               </div>
             </div>
           </div>
 
           <div>
-            <div class="text-xs font-medium text-gray-400 mb-2">Knob</div>
-            <div class="space-y-2 pl-2 border-l-2 border-gray-700">
+            <div class="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Knob</div>
+            <div class="space-y-2 pl-2 border-l-2 border-gray-300 dark:border-gray-700">
               <div>
-                <label class="block text-xs font-medium text-gray-500 mb-1">Background Color</label>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">Background Color</label>
                 <input
                   type="color"
                   :value="store.selectedWidget.knob?.bg_color || '#FFFFFF'"
                   @input="handleKnobChange('bg_color', ($event.target as HTMLInputElement).value)"
-                  class="w-full h-8 rounded border border-gray-600 bg-gray-800 cursor-pointer"
+                  class="w-full h-8 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 cursor-pointer"
                 />
               </div>
               <div>
-                <label class="block text-xs font-medium text-gray-500 mb-1">Radius</label>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">Radius</label>
                 <input
                   type="number"
                   min="0"
                   max="100"
                   :value="store.selectedWidget.knob?.radius ?? 9999"
                   @input="handleKnobChange('radius', Number(($event.target as HTMLInputElement).value))"
-                  class="w-full px-2 py-1.5 text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
+                  class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
             </div>
@@ -1262,23 +1265,23 @@ function getWidgetIcon(widget: Widget): string {
         </div>
 
         <!-- Spinner-specific properties -->
-        <div v-if="store.selectedWidget.type === 'spinner'" class="space-y-3 border-t border-gray-700 pt-3">
-          <div class="text-xs font-semibold text-gray-300 uppercase tracking-wider">Spinner Settings</div>
+        <div v-if="store.selectedWidget.type === 'spinner'" class="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-3">
+          <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Spinner Settings</div>
           
           <div>
-            <div class="text-xs font-medium text-gray-400 mb-2">Indicator Arc (Spinning Part)</div>
-            <div class="space-y-2 pl-2 border-l-2 border-gray-700">
+            <div class="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Indicator Arc (Spinning Part)</div>
+            <div class="space-y-2 pl-2 border-l-2 border-gray-300 dark:border-gray-700">
               <div>
-                <label class="block text-xs font-medium text-gray-500 mb-1">Arc Color</label>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">Arc Color</label>
                 <input
                   type="color"
                   :value="store.selectedWidget.indicator?.arc_color || store.selectedWidget.arc_color || '#818CF8'"
                   @input="handleIndicatorChange('arc_color', ($event.target as HTMLInputElement).value)"
-                  class="w-full h-8 rounded border border-gray-600 bg-gray-800 cursor-pointer"
+                  class="w-full h-8 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 cursor-pointer"
                 />
               </div>
               <div>
-                <label class="block text-xs font-medium text-gray-500 mb-1">Arc Opacity (%)</label>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">Arc Opacity (%)</label>
                 <input
                   type="range"
                   min="0"
@@ -1288,17 +1291,17 @@ function getWidgetIcon(widget: Widget): string {
                   @input="handleIndicatorChange('arc_opa', Number(($event.target as HTMLInputElement).value))"
                   class="w-full"
                 />
-                <div class="text-xs text-gray-500 mt-1">{{ store.selectedWidget.indicator?.arc_opa || 100 }}%</div>
+                <div class="text-xs text-gray-600 dark:text-gray-500 mt-1">{{ store.selectedWidget.indicator?.arc_opa || 100 }}%</div>
               </div>
               <div>
-                <label class="block text-xs font-medium text-gray-500 mb-1">Arc Width</label>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">Arc Width</label>
                 <input
                   type="number"
                   min="1"
                   max="50"
                   :value="store.selectedWidget.indicator?.arc_width || store.selectedWidget.arc_width || 8"
                   @input="handleIndicatorChange('arc_width', Number(($event.target as HTMLInputElement).value))"
-                  class="w-full px-2 py-1.5 text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
+                  class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
             </div>
@@ -1306,78 +1309,78 @@ function getWidgetIcon(widget: Widget): string {
         </div>
 
         <!-- Tileview-specific properties -->
-        <div v-if="store.selectedWidget.type === 'tileview'" class="space-y-3 border-t border-gray-700 pt-3">
-          <div class="text-xs font-semibold text-gray-300 uppercase tracking-wider">Tileview Settings</div>
+        <div v-if="store.selectedWidget.type === 'tileview'" class="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-3">
+          <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Tileview Settings</div>
           
           <div>
-            <label class="block text-xs font-medium text-gray-400 mb-2">Tiles Grid</label>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Tiles Grid</label>
             <div v-if="store.selectedWidget.tiles && store.selectedWidget.tiles.length > 0" class="space-y-2 mb-2">
               <div v-for="(tile, index) in store.selectedWidget.tiles" :key="index" 
-                class="p-2 bg-gray-800 rounded border border-gray-700 space-y-2">
+                class="p-2 bg-gray-50 dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-700 space-y-2">
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-2">
-                    <span class="text-xs font-medium text-gray-300">{{ tile.label || tile.id }}</span>
-                    <span class="text-xs text-gray-500">
+                    <span class="text-xs font-medium text-gray-700 dark:text-gray-300">{{ tile.label || tile.id }}</span>
+                    <span class="text-xs text-gray-500 dark:text-gray-500">
                       ({{ tile.widgets?.length || 0 }} {{ tile.widgets?.length === 1 ? 'widget' : 'widgets' }})
                     </span>
                   </div>
                   <button
                     @click="removeTile(index)"
-                    class="p-1 text-red-400 hover:bg-red-900/20 rounded"
+                    class="p-1 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20 rounded"
                     title="Remove tile"
                   >
                     <Icon icon="delete" size="14" />
                   </button>
                 </div>
-                <div class="text-xs text-gray-500 italic mb-2">
+                <div class="text-xs text-gray-500 dark:text-gray-500 italic mb-2">
                   Drag widgets from the toolbox onto this tile in the canvas to add child widgets.
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                   <div>
-                    <label class="block text-xs font-medium text-gray-500 mb-1">ID</label>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">ID</label>
                     <input
                       type="text"
                       :value="tile.id"
                       @input="updateTile(index, 'id', ($event.target as HTMLInputElement).value)"
-                      class="w-full px-2 py-1 text-xs bg-gray-900 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
+                      class="w-full px-2 py-1 text-xs bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
                     />
                   </div>
                   <div>
-                    <label class="block text-xs font-medium text-gray-500 mb-1">Label</label>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">Label</label>
                     <input
                       type="text"
                       :value="tile.label || ''"
                       @input="updateTile(index, 'label', ($event.target as HTMLInputElement).value)"
-                      class="w-full px-2 py-1 text-xs bg-gray-900 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
+                      class="w-full px-2 py-1 text-xs bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
                     />
                   </div>
                   <div>
-                    <label class="block text-xs font-medium text-gray-500 mb-1">Row</label>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">Row</label>
                     <input
                       type="number"
                       min="0"
                       :value="tile.row"
                       @input="updateTile(index, 'row', Number(($event.target as HTMLInputElement).value))"
-                      class="w-full px-2 py-1 text-xs bg-gray-900 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
+                      class="w-full px-2 py-1 text-xs bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
                     />
                   </div>
                   <div>
-                    <label class="block text-xs font-medium text-gray-500 mb-1">Column</label>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">Column</label>
                     <input
                       type="number"
                       min="0"
                       :value="tile.column"
                       @input="updateTile(index, 'column', Number(($event.target as HTMLInputElement).value))"
-                      class="w-full px-2 py-1 text-xs bg-gray-900 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
+                      class="w-full px-2 py-1 text-xs bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
                     />
                   </div>
                 </div>
                 <div>
-                  <label class="block text-xs font-medium text-gray-500 mb-1">Swipe Directions</label>
+                  <label class="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">Swipe Directions</label>
                   <div class="flex flex-wrap gap-1">
                     <label v-for="dir in ['LEFT', 'RIGHT', 'TOP', 'BOTTOM', 'HOR', 'VER', 'ALL']" :key="dir"
                       class="flex items-center gap-1 px-2 py-1 text-xs rounded cursor-pointer transition-colors"
-                      :class="tile.dir?.includes(dir) ? 'bg-indigo-600 text-white' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'"
+                      :class="tile.dir?.includes(dir) ? 'bg-indigo-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600'"
                     >
                       <input
                         type="checkbox"
@@ -1393,7 +1396,7 @@ function getWidgetIcon(widget: Widget): string {
             </div>
             <button
               @click="addTile"
-              class="w-full px-3 py-1.5 text-xs text-indigo-400 border border-indigo-500/50 rounded hover:bg-indigo-900/20 transition-colors"
+              class="w-full px-3 py-1.5 text-xs text-indigo-600 dark:text-indigo-400 border border-indigo-500/50 rounded hover:bg-indigo-100 dark:hover:bg-indigo-900/20 transition-colors"
             >
               + Add Tile
             </button>
@@ -1401,9 +1404,9 @@ function getWidgetIcon(widget: Widget): string {
 
           <!-- Visual Tile Selector -->
           <div v-if="store.selectedWidget.tiles && store.selectedWidget.tiles.length > 0">
-            <label class="block text-xs font-medium text-gray-400 mb-2">Active Tile (Click to select)</label>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Active Tile (Click to select)</label>
             <div 
-              class="grid gap-1 p-2 bg-gray-800 rounded border border-gray-700"
+              class="grid gap-1 p-2 bg-gray-100 dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-700"
               :style="{ 
                 gridTemplateColumns: `repeat(${getMaxTileColumn(store.selectedWidget) + 1}, minmax(0, 1fr))`,
                 gridTemplateRows: `repeat(${getMaxTileRow(store.selectedWidget) + 1}, minmax(0, 1fr))`
@@ -1417,7 +1420,7 @@ function getWidgetIcon(widget: Widget): string {
                   'aspect-square min-h-10 rounded text-xs font-medium transition-all',
                   tile.row === (store.selectedWidget.current_tile_row || 0) && tile.column === (store.selectedWidget.current_tile_column || 0)
                     ? 'bg-indigo-600 text-white border-2 border-indigo-400'
-                    : 'bg-gray-700 text-gray-400 border border-gray-600 hover:bg-gray-600'
+                    : 'bg-gray-300 dark:bg-gray-700 text-gray-700 dark:text-gray-400 border border-gray-400 dark:border-gray-600 hover:bg-gray-400 dark:hover:bg-gray-600'
                 ]"
                 :style="{
                   gridRow: tile.row + 1,
@@ -1435,51 +1438,51 @@ function getWidgetIcon(widget: Widget): string {
 
           <div class="grid grid-cols-2 gap-2">
             <div>
-              <label class="block text-xs font-medium text-gray-400 mb-1">Current Row</label>
+              <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Current Row</label>
               <input
                 type="number"
                 min="0"
                 :value="store.selectedWidget.current_tile_row || 0"
                 @input="handleInputChange('current_tile_row', Number(($event.target as HTMLInputElement).value))"
-                class="w-full px-2 py-1.5 text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
+                class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
               />
             </div>
             <div>
-              <label class="block text-xs font-medium text-gray-400 mb-1">Current Column</label>
+              <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Current Column</label>
               <input
                 type="number"
                 min="0"
                 :value="store.selectedWidget.current_tile_column || 0"
                 @input="handleInputChange('current_tile_column', Number(($event.target as HTMLInputElement).value))"
-                class="w-full px-2 py-1.5 text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
+                class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
               />
             </div>
           </div>
         </div>
 
         <!-- Buttonmatrix-specific properties -->
-        <div v-if="store.selectedWidget.type === 'buttonmatrix'" class="space-y-3 border-t border-gray-700 pt-3">
-          <div class="text-xs font-semibold text-gray-300 uppercase tracking-wider">Button Matrix Settings</div>
+        <div v-if="store.selectedWidget.type === 'buttonmatrix'" class="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-3">
+          <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Button Matrix Settings</div>
           
           <div>
-            <label class="flex items-center gap-2 text-xs font-medium text-gray-400">
+            <label class="flex items-center gap-2 text-xs font-medium text-gray-600 dark:text-gray-400">
               <input
                 type="checkbox"
                 :checked="store.selectedWidget.one_checked || false"
                 @change="handleInputChange('one_checked', ($event.target as HTMLInputElement).checked)"
-                class="w-4 h-4 rounded bg-gray-800 border-gray-600 text-indigo-600 focus:ring-2 focus:ring-indigo-500"
+                class="w-4 h-4 rounded bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-2 focus:ring-indigo-500"
               />
               One Checked (Radio Mode)
             </label>
           </div>
 
           <div>
-            <label class="block text-xs font-medium text-gray-400 mb-2">Button Rows & Buttons</label>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Button Rows & Buttons</label>
             <div v-if="store.selectedWidget.rows && store.selectedWidget.rows.length > 0" class="space-y-3 mb-2">
               <div v-for="(row, rowIndex) in store.selectedWidget.rows" :key="rowIndex" 
-                class="p-2 bg-gray-800 rounded border border-gray-700">
+                class="p-2 bg-gray-100 dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-700">
                 <div class="flex items-center justify-between mb-2">
-                  <span class="text-xs font-medium text-gray-300">Row {{ rowIndex + 1 }}</span>
+                  <span class="text-xs font-medium text-gray-700 dark:text-gray-300">Row {{ rowIndex + 1 }}</span>
                   <div class="flex gap-1">
                     <button
                       @click="addButtonToRow(rowIndex)"
@@ -1500,9 +1503,9 @@ function getWidgetIcon(widget: Widget): string {
                 <!-- Buttons in this row -->
                 <div class="space-y-2">
                   <div v-for="(button, btnIndex) in row.buttons" :key="btnIndex"
-                    class="p-2 bg-gray-900 rounded border border-gray-600">
+                    class="p-2 bg-white dark:bg-gray-900 rounded border border-gray-300 dark:border-gray-600">
                     <div class="flex items-center justify-between mb-2">
-                      <span class="text-xs font-medium text-gray-400">Button {{ btnIndex + 1 }}</span>
+                      <span class="text-xs font-medium text-gray-600 dark:text-gray-400">Button {{ btnIndex + 1 }}</span>
                       <button
                         @click="removeButton(rowIndex, btnIndex)"
                         :disabled="row.buttons.length <= 1"
@@ -1514,66 +1517,66 @@ function getWidgetIcon(widget: Widget): string {
                     
                     <!-- Button ID -->
                     <div class="mb-2">
-                      <label class="block text-[10px] font-medium text-gray-500 mb-1">ID</label>
+                      <label class="block text-[10px] font-medium text-gray-600 dark:text-gray-500 mb-1">ID</label>
                       <input
                         type="text"
                         :value="button.id"
                         @input="updateButtonProperty(rowIndex, btnIndex, 'id', ($event.target as HTMLInputElement).value)"
-                        class="w-full px-2 py-1 text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
+                        class="w-full px-2 py-1 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
                       />
                     </div>
                     
                     <!-- Button Text -->
                     <div class="mb-2">
-                      <label class="block text-[10px] font-medium text-gray-500 mb-1">Text</label>
+                      <label class="block text-[10px] font-medium text-gray-600 dark:text-gray-500 mb-1">Text</label>
                       <input
                         type="text"
                         :value="button.text"
                         @input="updateButtonProperty(rowIndex, btnIndex, 'text', ($event.target as HTMLInputElement).value)"
-                        class="w-full px-2 py-1 text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
+                        class="w-full px-2 py-1 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
                       />
                     </div>
                     
                     <!-- Button Width -->
                     <div class="mb-2">
-                      <label class="block text-[10px] font-medium text-gray-500 mb-1">Width (1-15)</label>
+                      <label class="block text-[10px] font-medium text-gray-600 dark:text-gray-500 mb-1">Width (1-15)</label>
                       <input
                         type="number"
                         min="1"
                         max="15"
                         :value="button.width || 1"
                         @input="updateButtonProperty(rowIndex, btnIndex, 'width', Number(($event.target as HTMLInputElement).value))"
-                        class="w-full px-2 py-1 text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
+                        class="w-full px-2 py-1 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
                       />
                     </div>
                     
                     <!-- Control Flags -->
-                    <div class="space-y-1 pt-2 border-t border-gray-700">
-                      <div class="text-[10px] font-medium text-gray-500 mb-1">Control Flags</div>
-                      <label class="flex items-center gap-2 text-[10px] text-gray-400">
+                    <div class="space-y-1 pt-2 border-t border-gray-300 dark:border-gray-700">
+                      <div class="text-[10px] font-medium text-gray-600 dark:text-gray-500 mb-1">Control Flags</div>
+                      <label class="flex items-center gap-2 text-[10px] text-gray-600 dark:text-gray-400">
                         <input
                           type="checkbox"
                           :checked="button.control?.checkable || false"
                           @change="updateButtonProperty(rowIndex, btnIndex, 'control.checkable', ($event.target as HTMLInputElement).checked)"
-                          class="w-3 h-3 rounded bg-gray-800 border-gray-600 text-indigo-600"
+                          class="w-3 h-3 rounded bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-indigo-600"
                         />
                         Checkable
                       </label>
-                      <label class="flex items-center gap-2 text-[10px] text-gray-400">
+                      <label class="flex items-center gap-2 text-[10px] text-gray-600 dark:text-gray-400">
                         <input
                           type="checkbox"
                           :checked="button.control?.checked || false"
                           @change="updateButtonProperty(rowIndex, btnIndex, 'control.checked', ($event.target as HTMLInputElement).checked)"
-                          class="w-3 h-3 rounded bg-gray-800 border-gray-600 text-indigo-600"
+                          class="w-3 h-3 rounded bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-indigo-600"
                         />
                         Checked
                       </label>
-                      <label class="flex items-center gap-2 text-[10px] text-gray-400">
+                      <label class="flex items-center gap-2 text-[10px] text-gray-600 dark:text-gray-400">
                         <input
                           type="checkbox"
                           :checked="button.control?.disabled || false"
                           @change="updateButtonProperty(rowIndex, btnIndex, 'control.disabled', ($event.target as HTMLInputElement).checked)"
-                          class="w-3 h-3 rounded bg-gray-800 border-gray-600 text-indigo-600"
+                          class="w-3 h-3 rounded bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-indigo-600"
                         />
                         Disabled
                       </label>
@@ -1620,23 +1623,23 @@ function getWidgetIcon(widget: Widget): string {
 
         <!-- Mode (for meters, spinners) -->
         <div v-if="'mode' in store.selectedWidget">
-          <label class="block text-xs font-medium text-gray-400 mb-1">Mode</label>
+          <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Mode</label>
           <input
             type="text"
             :value="store.selectedWidget.mode"
             @input="handleInputChange('mode', ($event.target as HTMLInputElement).value)"
-            class="w-full px-2 py-1.5 text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           />
         </div>
 
         <!-- Rows (for textarea) -->
         <div v-if="'rows' in store.selectedWidget">
-          <label class="block text-xs font-medium text-gray-400 mb-1">Rows</label>
+          <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Rows</label>
           <input
             type="number"
             :value="store.selectedWidget.rows"
             @input="handleNumberInput('rows', $event)"
-            class="w-full px-2 py-1.5 text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           />
         </div>
       </form>
@@ -1650,16 +1653,16 @@ function getWidgetIcon(widget: Widget): string {
     class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
     @click.self="closeTileLayoutModal"
   >
-    <div class="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
-      <h3 class="text-lg font-semibold text-white mb-4">Tile Layout Configuration</h3>
+    <div class="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
+      <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Tile Layout Configuration</h3>
       
       <div v-if="currentTile.layout" class="space-y-4">
         <!-- Layout Type -->
         <div>
-          <label class="block text-sm font-medium text-gray-400 mb-2">Layout Type</label>
+          <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Layout Type</label>
           <select
             v-model="currentTile.layout.type"
-            class="w-full px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
+            class="w-full px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
           >
             <option value="NONE">None (Absolute positioning)</option>
             <option value="FLEX">Flex Layout</option>
@@ -1670,10 +1673,10 @@ function getWidgetIcon(widget: Widget): string {
         <!-- Flex Layout Options -->
         <template v-if="currentTile.layout.type === 'FLEX'">
           <div>
-            <label class="block text-sm font-medium text-gray-400 mb-2">Flex Flow</label>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Flex Flow</label>
             <select
               v-model="currentTile.layout.flex_flow"
-              class="w-full px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
+              class="w-full px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
             >
               <option value="ROW">Row</option>
               <option value="COLUMN">Column</option>
@@ -1685,10 +1688,10 @@ function getWidgetIcon(widget: Widget): string {
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-400 mb-2">Main Axis Alignment</label>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Main Axis Alignment</label>
             <select
               v-model="currentTile.layout.flex_align_main"
-              class="w-full px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
+              class="w-full px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
             >
               <option value="START">Start</option>
               <option value="END">End</option>
@@ -1700,10 +1703,10 @@ function getWidgetIcon(widget: Widget): string {
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-400 mb-2">Cross Axis Alignment</label>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Cross Axis Alignment</label>
             <select
               v-model="currentTile.layout.flex_align_cross"
-              class="w-full px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
+              class="w-full px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
             >
               <option value="START">Start</option>
               <option value="END">End</option>
@@ -1715,21 +1718,21 @@ function getWidgetIcon(widget: Widget): string {
         <!-- Padding Options -->
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-sm font-medium text-gray-400 mb-2">Pad Row</label>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Pad Row</label>
             <input
               type="number"
               v-model.number="currentTile.layout.pad_row"
               min="0"
-              class="w-full px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
+              class="w-full px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-400 mb-2">Pad Column</label>
+            <label class="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Pad Column</label>
             <input
               type="number"
               v-model.number="currentTile.layout.pad_column"
               min="0"
-              class="w-full px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
+              class="w-full px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
             />
           </div>
         </div>
@@ -1739,7 +1742,7 @@ function getWidgetIcon(widget: Widget): string {
       <div class="flex justify-end gap-3 mt-6">
         <button
           @click="closeTileLayoutModal"
-          class="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white transition-colors"
+          class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
         >
           Cancel
         </button>

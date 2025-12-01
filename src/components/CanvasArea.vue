@@ -526,19 +526,19 @@ function getWidgetStyle(widget: Widget) {
 </script>
 
 <template>
-  <div class="h-full flex flex-col bg-gray-800">
+  <div class="h-full flex flex-col bg-gray-100 dark:bg-gray-800">
     <!-- Canvas Tabs Bar -->
-    <div class="shrink-0 bg-gray-900 border-b border-gray-700 flex items-center">
+    <div class="shrink-0 bg-gray-200 dark:bg-gray-900 border-b border-gray-300 dark:border-gray-700 flex items-center">
       <div class="flex-1 flex items-center overflow-x-auto">
         <div
           v-for="tab in store.canvasTabs"
           :key="tab.id"
           @click="store.switchCanvasTab(tab.id)"
           :class="[
-            'group relative flex items-center gap-2 px-4 py-2 text-sm border-r border-gray-700 cursor-pointer transition-colors min-w-0',
+            'group relative flex items-center gap-2 px-4 py-2 text-sm border-r border-gray-300 dark:border-gray-700 cursor-pointer transition-colors min-w-0',
             store.activeCanvasTabId === tab.id
-              ? 'bg-gray-800 text-indigo-400 font-medium'
-              : 'text-gray-400 hover:text-gray-300 hover:bg-gray-850'
+              ? 'bg-gray-100 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 font-medium'
+              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300 hover:bg-gray-150 dark:hover:bg-gray-850'
           ]"
         >
           <Icon icon="web" size="16" class="shrink-0" />
@@ -586,20 +586,20 @@ function getWidgetStyle(widget: Widget) {
     </div>
 
     <!-- Canvas Toolbar -->
-    <div class="shrink-0 bg-gray-900 border-b border-gray-700 px-4 py-2 flex items-center justify-between">
+    <div class="shrink-0 bg-white dark:bg-gray-900 border-b border-gray-300 dark:border-gray-700 px-4 py-2 flex items-center justify-between">
       <div class="flex items-center gap-4">
-        <h2 class="text-sm font-semibold text-gray-200 uppercase tracking-wider">Canvas</h2>
+        <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-200 uppercase tracking-wider">Canvas</h2>
         
         <!-- Undo/Redo buttons -->
-        <div class="flex items-center gap-1 border-l border-gray-700 pl-4">
+        <div class="flex items-center gap-1 border-l border-gray-300 dark:border-gray-700 pl-4">
           <button
             @click="store.undo()"
             :disabled="!store.canUndo"
             :class="[
               'px-2 py-1 text-xs rounded transition-colors flex items-center gap-1',
               store.canUndo
-                ? 'text-gray-300 hover:text-white hover:bg-gray-800'
-                : 'text-gray-600 cursor-not-allowed'
+                ? 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-gray-800'
+                : 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
             ]"
             title="Undo (Ctrl+Z)"
           >
@@ -612,8 +612,8 @@ function getWidgetStyle(widget: Widget) {
             :class="[
               'px-2 py-1 text-xs rounded transition-colors flex items-center gap-1',
               store.canRedo
-                ? 'text-gray-300 hover:text-white hover:bg-gray-800'
-                : 'text-gray-600 cursor-not-allowed'
+                ? 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-gray-800'
+                : 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
             ]"
             title="Redo (Ctrl+Shift+Z)"
           >
@@ -626,11 +626,11 @@ function getWidgetStyle(widget: Widget) {
       <div class="flex items-center gap-4">
         <!-- Resolution Select -->
         <div class="flex items-center gap-2">
-          <label class="text-xs font-medium text-gray-400">Resolution:</label>
+          <label class="text-xs font-medium text-gray-600 dark:text-gray-400">Resolution:</label>
           <select
             v-model="store.canvasResolution"
             @change="store.updateCanvasSize()"
-            class="px-2 py-1 text-xs bg-gray-800 text-gray-200 border border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            class="px-2 py-1 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           >
             <option v-for="res in resolutions" :key="res" :value="res">
               {{ res }}
@@ -640,7 +640,7 @@ function getWidgetStyle(widget: Widget) {
         
         <!-- Scale Controls -->
         <div class="flex items-center gap-2">
-          <span class="text-xs font-medium text-gray-400">Zoom:</span>
+          <span class="text-xs font-medium text-gray-600 dark:text-gray-400">Zoom:</span>
           <div class="flex gap-1">
             <button
               v-for="scale in scales"
@@ -650,7 +650,7 @@ function getWidgetStyle(widget: Widget) {
                 'px-2 py-1 text-xs rounded border transition-colors',
                 store.currentScale === scale
                   ? 'bg-indigo-600 text-white border-indigo-500'
-                  : 'bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700'
+                  : 'bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:hover:bg-gray-700'
               ]"
             >
               {{ scale }}×
@@ -716,33 +716,33 @@ function getWidgetStyle(widget: Widget) {
       class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       @click.self="cancelCloseTab"
     >
-      <div class="bg-gray-900 rounded-xl shadow-2xl border border-gray-700 w-full max-w-md">
+      <div class="bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-300 dark:border-gray-700 w-full max-w-md">
         <!-- Header -->
-        <div class="flex items-center gap-3 p-4 border-b border-gray-700">
-          <div class="shrink-0 w-10 h-10 rounded-full bg-red-900/20 flex items-center justify-center">
-            <Icon icon="warning" size="24" class="text-red-400" />
+        <div class="flex items-center gap-3 p-4 border-b border-gray-300 dark:border-gray-700">
+          <div class="shrink-0 w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
+            <Icon icon="warning" size="24" class="text-red-600 dark:text-red-400" />
           </div>
           <div class="flex-1">
-            <h2 class="text-lg font-semibold text-white">Close Canvas Tab?</h2>
-            <p class="text-sm text-gray-400">This action cannot be undone</p>
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Close Canvas Tab?</h2>
+            <p class="text-sm text-gray-600 dark:text-gray-400">This action cannot be undone</p>
           </div>
         </div>
 
         <!-- Content -->
         <div class="p-4">
-          <p class="text-gray-300 mb-2">
-            Are you sure you want to close <span class="font-semibold text-indigo-400">"{{ tabToCloseName }}"</span>?
+          <p class="text-gray-700 dark:text-gray-300 mb-2">
+            Are you sure you want to close <span class="font-semibold text-indigo-600 dark:text-indigo-400">"{{ tabToCloseName }}"</span>?
           </p>
-          <p class="text-sm text-gray-400">
+          <p class="text-sm text-gray-600 dark:text-gray-400">
             All widgets in this canvas will be permanently deleted.
           </p>
         </div>
 
         <!-- Footer -->
-        <div class="flex items-center justify-end gap-2 p-4 border-t border-gray-700">
+        <div class="flex items-center justify-end gap-2 p-4 border-t border-gray-300 dark:border-gray-700">
           <button
             @click="cancelCloseTab"
-            class="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+            class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg transition-colors"
           >
             Cancel
           </button>

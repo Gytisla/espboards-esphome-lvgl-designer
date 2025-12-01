@@ -102,6 +102,7 @@ export const useDesignerStore = defineStore('designer', () => {
   const showShortcutsModal = ref(false)
   const showPreviewModal = ref(false)
   const exportAllCanvases = ref(false) // Export all canvas tabs or just active one
+  const theme = ref<'light' | 'dark'>('dark') // Theme preference
   
   // Drag state
   const draggedWidgetType = ref<WidgetType | null>(null)
@@ -444,6 +445,21 @@ export const useDesignerStore = defineStore('designer', () => {
   function setScale(scale: number) {
     currentScale.value = scale
     saveState()
+  }
+  
+  function setTheme(newTheme: 'light' | 'dark') {
+    theme.value = newTheme
+    // Apply theme to document
+    if (newTheme === 'dark') {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+    saveState()
+  }
+  
+  function toggleTheme() {
+    setTheme(theme.value === 'dark' ? 'light' : 'dark')
   }
   
   // YAML Generation
@@ -793,7 +809,8 @@ export const useDesignerStore = defineStore('designer', () => {
       nextCanvasId: nextCanvasId.value,
       scale: currentScale.value,
       nextWidgetId: nextWidgetId.value,
-      isToolboxVisible: isToolboxVisible.value
+      isToolboxVisible: isToolboxVisible.value,
+      theme: theme.value
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
   }
@@ -838,6 +855,11 @@ export const useDesignerStore = defineStore('designer', () => {
         currentScale.value = state.scale || 2
         nextWidgetId.value = state.nextWidgetId || 0
         isToolboxVisible.value = state.isToolboxVisible !== false
+        
+        // Load theme and apply it
+        const savedTheme = state.theme || 'dark'
+        setTheme(savedTheme)
+        
         updateCanvasSize()
       }
     } catch (e) {
@@ -861,6 +883,7 @@ export const useDesignerStore = defineStore('designer', () => {
     showShortcutsModal,
     showPreviewModal,
     exportAllCanvases,
+    theme,
     draggedWidgetType,
     isDraggingWidget,
     dragOffsetX,
@@ -885,6 +908,8 @@ export const useDesignerStore = defineStore('designer', () => {
     moveWidget,
     updateCanvasSize,
     setScale,
+    setTheme,
+    toggleTheme,
     generateYAML,
     copyYAML,
     importYAML,

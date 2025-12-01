@@ -24,13 +24,13 @@ function handleDragStart(event: DragEvent, type: WidgetType) {
 <template>
   <aside
     :class="[
-      'w-64 bg-gray-900 border-r border-gray-700 flex flex-col shrink-0 transition-transform duration-300',
+      'w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col shrink-0 transition-transform duration-300',
       store.isToolboxVisible ? 'translate-x-0' : '-translate-x-full absolute'
     ]"
   >
     <!-- Toolbox Header -->
-    <div class="px-4 py-3 border-b border-gray-700">
-      <h2 class="text-sm font-semibold text-gray-200 uppercase tracking-wider">
+    <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-200 uppercase tracking-wider">
         Widgets
       </h2>
     </div>
@@ -41,20 +41,20 @@ function handleDragStart(event: DragEvent, type: WidgetType) {
         <div
           v-for="widget in widgets"
           :key="widget.type"
-          class="group flex items-center justify-between p-2.5 rounded-lg bg-gray-800 hover:bg-gray-750 border border-gray-700 hover:border-indigo-500 cursor-grab active:cursor-grabbing transition-all"
+          class="group flex items-center justify-between p-2.5 rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-750 border border-gray-300 dark:border-gray-700 hover:border-indigo-500 cursor-grab active:cursor-grabbing transition-all"
           draggable="true"
           @dragstart="handleDragStart($event, widget.type as WidgetType)"
         >
           <div class="flex items-center gap-2 flex-1 min-w-0">
-            <Icon :icon="widget.icon" size="20" class="text-indigo-400 shrink-0" />
-            <span class="text-sm text-gray-200 truncate">{{ widget.label }}</span>
+            <Icon :icon="widget.icon" size="20" class="text-indigo-500 dark:text-indigo-400 shrink-0" />
+            <span class="text-sm text-gray-700 dark:text-gray-200 truncate">{{ widget.label }}</span>
           </div>
           <button
             @click="store.addWidget(widget.type as WidgetType)"
-            class="p-1 rounded hover:bg-gray-600 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+            class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
             title="Add to canvas"
           >
-            <Icon icon="plus-circle" size="18" class="text-gray-300" />
+            <Icon icon="plus-circle" size="18" class="text-gray-600 dark:text-gray-300" />
           </button>
         </div>
       </div>
