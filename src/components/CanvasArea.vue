@@ -146,9 +146,19 @@ const tabToClose = ref<string | null>(null)
 const tabToCloseName = ref('')
 
 function requestCloseTab(tabId: string, tabName: string) {
-  tabToClose.value = tabId
-  tabToCloseName.value = tabName
-  showCloseConfirmation.value = true
+  // Check if tab has widgets
+  const tab = store.canvasTabs.find(t => t.id === tabId)
+  const hasWidgets = tab && tab.widgets.length > 0
+  
+  if (hasWidgets) {
+    // Show confirmation if tab has widgets
+    tabToClose.value = tabId
+    tabToCloseName.value = tabName
+    showCloseConfirmation.value = true
+  } else {
+    // Close immediately if tab is empty
+    store.removeCanvasTab(tabId)
+  }
 }
 
 function confirmCloseTab() {
