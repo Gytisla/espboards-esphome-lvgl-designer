@@ -1029,7 +1029,7 @@ function getWidgetStyle(widget: Widget) {
       @wheel="handleWheel"
     >
       <!-- Scale Indicator -->
-      <div class="absolute top-4 right-4 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 rounded-lg text-sm font-medium shadow-lg border border-gray-200 dark:border-gray-700 z-40 pointer-events-none">
+      <div class="absolute top-4 right-4 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-2 py-1 rounded text-xs font-medium shadow-lg border border-gray-200 dark:border-gray-700 z-40 pointer-events-none">
         <span>{{ (zoomLevel * 100).toFixed(0) }}%</span>
       </div>
       
@@ -1037,22 +1037,22 @@ function getWidgetStyle(widget: Widget) {
       <button
         @click="isPanLocked = !isPanLocked"
         :class="[
-          'absolute top-4 left-4 p-2 rounded-lg shadow-lg border z-40 transition-colors',
+          'absolute top-4 left-4 p-1 rounded shadow-lg border z-40 transition-colors',
           isPanLocked
             ? 'bg-indigo-600 dark:bg-indigo-600 border-indigo-500 dark:border-indigo-500 text-white hover:bg-indigo-700 dark:hover:bg-indigo-700'
             : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-white'
         ]"
         :title="isPanLocked ? 'Pan is locked (click to unlock)' : 'Pan is unlocked (click to lock)'"
       >
-        <Icon :icon="isPanLocked ? 'lock' : 'lock-open-variant'" size="20" />
+        <Icon :icon="isPanLocked ? 'lock' : 'lock-open-variant'" size="16" />
       </button>
       
       <!-- Zoom Controls -->
-      <div class="absolute bottom-4 right-4 flex gap-1 z-40 bg-white dark:bg-gray-900 rounded-lg p-1 shadow-lg border border-gray-200 dark:border-gray-700">
+      <div class="absolute bottom-4 right-4 flex gap-0.5 z-40 bg-white dark:bg-gray-900 rounded p-0.5 shadow-lg border border-gray-200 dark:border-gray-700">
         <button
           @click="handleZoomOut"
           :disabled="zoomLevel <= minZoom"
-          class="px-2 py-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:bg-gray-200 dark:disabled:bg-gray-700 disabled:cursor-not-allowed text-gray-900 dark:text-white text-xs rounded transition-colors"
+          class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:bg-gray-200 dark:disabled:bg-gray-700 disabled:cursor-not-allowed text-gray-900 dark:text-white text-xs rounded transition-colors"
           title="Zoom out (Ctrl -)"
         >
           −
@@ -1061,7 +1061,7 @@ function getWidgetStyle(widget: Widget) {
         <button
           @click="zoomLevel = 0.5"
           :class="[
-            'px-2 py-1 text-xs rounded transition-colors',
+            'px-1.5 py-0.5 text-xs rounded transition-colors',
             Math.abs(zoomLevel - 0.5) < 0.01
               ? 'bg-indigo-600 text-white'
               : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
@@ -1074,7 +1074,7 @@ function getWidgetStyle(widget: Widget) {
         <button
           @click="zoomLevel = 1"
           :class="[
-            'px-2 py-1 text-xs rounded transition-colors',
+            'px-1.5 py-0.5 text-xs rounded transition-colors',
             Math.abs(zoomLevel - 1) < 0.01
               ? 'bg-indigo-600 text-white'
               : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
@@ -1087,7 +1087,7 @@ function getWidgetStyle(widget: Widget) {
         <button
           @click="zoomLevel = 2"
           :class="[
-            'px-2 py-1 text-xs rounded transition-colors',
+            'px-1.5 py-0.5 text-xs rounded transition-colors',
             Math.abs(zoomLevel - 2) < 0.01
               ? 'bg-indigo-600 text-white'
               : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
@@ -1100,7 +1100,7 @@ function getWidgetStyle(widget: Widget) {
         <button
           @click="zoomLevel = 3"
           :class="[
-            'px-2 py-1 text-xs rounded transition-colors',
+            'px-1.5 py-0.5 text-xs rounded transition-colors',
             Math.abs(zoomLevel - 3) < 0.01
               ? 'bg-indigo-600 text-white'
               : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
@@ -1113,7 +1113,7 @@ function getWidgetStyle(widget: Widget) {
         <button
           @click="handleZoomIn"
           :disabled="zoomLevel >= maxZoom"
-          class="px-2 py-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:bg-gray-200 dark:disabled:bg-gray-700 disabled:cursor-not-allowed text-gray-900 dark:text-white text-xs rounded transition-colors"
+          class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:bg-gray-200 dark:disabled:bg-gray-700 disabled:cursor-not-allowed text-gray-900 dark:text-white text-xs rounded transition-colors"
           title="Zoom in (Ctrl +)"
         >
           +
