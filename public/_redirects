@@ -1,5 +1,5 @@
-# Serve static assets normally
-!/esphome-lvgl-designer/assets/*
+# Serve assets normally
+/esphome-lvgl-designer/assets/*    /esphome-lvgl-designer/assets/:splat
 
-# Rewrite SPA routes
-/esphome-lvgl-designer/*   /index.html   200
+# SPA fallback
+/esphome-lvgl-designer/*           /index.html    200
