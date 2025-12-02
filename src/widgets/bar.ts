@@ -1,5 +1,6 @@
 import type { WidgetPlugin, PropertyGroup } from './types'
 import type { Widget } from '../types/widget'
+import { convertHexColor } from './utils'
 
 export const barWidget: WidgetPlugin = {
   type: 'bar',
@@ -152,14 +153,14 @@ export const barWidget: WidgetPlugin = {
     // Indicator styles
     if (widget.indicator) {
       yaml += `${indent}indicator:\n`
-      if (widget.indicator.bg_color) yaml += `${indent}  bg_color: ${widget.indicator.bg_color}\n`
+      if (widget.indicator.bg_color) yaml += `${indent}  bg_color: ${convertHexColor(widget.indicator.bg_color)}\n`
       if (widget.indicator.border_width !== undefined) yaml += `${indent}  border_width: ${widget.indicator.border_width}\n`
-      if (widget.indicator.border_color) yaml += `${indent}  border_color: ${widget.indicator.border_color}\n`
+      if (widget.indicator.border_color) yaml += `${indent}  border_color: ${convertHexColor(widget.indicator.border_color)}\n`
       if (widget.indicator.radius !== undefined) yaml += `${indent}  radius: ${widget.indicator.radius}\n`
     }
     
     // Background color
-    if (widget.bg_color) yaml += `${indent}bg_color: ${widget.bg_color}\n`
+    if (widget.bg_color) yaml += `${indent}bg_color: ${convertHexColor(widget.bg_color)}\n`
     
     return yaml
   },

@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- Main blue background -->
+  <rect width="256" height="256" rx="64" fill="#3B82F6"/>
+  
+  <!-- Top connector bars -->
+  <rect x="48" y="32" width="16" height="32" rx="8" fill="white"/>
+  <rect x="96" y="32" width="16" height="32" rx="8" fill="white"/>
+  <rect x="144" y="32" width="16" height="32" rx="8" fill="white"/>
+  <rect x="192" y="32" width="16" height="32" rx="8" fill="white"/>
+  
+  <!-- Left connector bars -->
+  <rect x="32" y="80" width="32" height="16" rx="8" fill="white"/>
+  <rect x="32" y="128" width="32" height="16" rx="8" fill="white"/>
+  <rect x="32" y="176" width="32" height="16" rx="8" fill="white"/>
+  
+  <!-- Right connector bars -->
+  <rect x="192" y="80" width="32" height="16" rx="8" fill="white"/>
+  <rect x="192" y="128" width="32" height="16" rx="8" fill="white"/>
+  <rect x="192" y="176" width="32" height="16" rx="8" fill="white"/>
+  
+  <!-- Bottom connector bars -->
+  <rect x="48" y="192" width="16" height="32" rx="8" fill="white"/>
+  <rect x="96" y="192" width="16" height="32" rx="8" fill="white"/>
+  <rect x="144" y="192" width="16" height="32" rx="8" fill="white"/>
+  <rect x="192" y="192" width="16" height="32" rx="8" fill="white"/>
+  
+  <!-- Main center chip -->
+  <rect x="60" y="60" width="136" height="136" rx="20" fill="white"/>
+  
+  <!-- Circuit paths -->
+  <line x1="88" y1="88" x2="168" y2="88" stroke="#3B82F6" stroke-width="3" stroke-linecap="round"/>
+  <line x1="88" y1="88" x2="88" y2="128" stroke="#3B82F6" stroke-width="3" stroke-linecap="round"/>
+  <line x1="88" y1="128" x2="128" y2="128" stroke="#3B82F6" stroke-width="3" stroke-linecap="round"/>
+  <line x1="128" y1="128" x2="128" y2="168" stroke="#3B82F6" stroke-width="3" stroke-linecap="round"/>
+  <line x1="128" y1="168" x2="168" y2="168" stroke="#3B82F6" stroke-width="3" stroke-linecap="round"/>
+  <line x1="168" y1="88" x2="168" y2="168" stroke="#3B82F6" stroke-width="3" stroke-linecap="round"/>
+  
+  <!-- Connection nodes -->
+  <circle cx="88" cy="88" r="6" fill="#3B82F6"/>
+  <circle cx="168" cy="88" r="6" fill="#3B82F6"/>
+  <circle cx="88" cy="128" r="6" fill="#3B82F6"/>
+  <circle cx="128" cy="128" r="6" fill="#3B82F6"/>
+  <circle cx="128" cy="168" r="6" fill="#3B82F6"/>
+  <circle cx="168" cy="168" r="6" fill="#3B82F6"/>
+</svg>

@@ -1,5 +1,6 @@
 import type { WidgetPlugin } from './types'
 import type { Widget } from '../types/widget'
+import { convertHexColor } from './utils'
 
 export const dropdownWidget: WidgetPlugin = {
   type: 'dropdown',
@@ -43,7 +44,7 @@ export const dropdownWidget: WidgetPlugin = {
       yaml += `${indent}selected_index: ${widget.selected_index}\n`
     }
     
-    if (widget.bg_color) yaml += `${indent}bg_color: ${widget.bg_color}\n`
+    if (widget.bg_color) yaml += `${indent}bg_color: ${convertHexColor(widget.bg_color)}\n`
     
     return yaml
   },

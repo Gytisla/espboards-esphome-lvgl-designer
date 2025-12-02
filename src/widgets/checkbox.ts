@@ -1,5 +1,6 @@
 import type { WidgetPlugin } from './types'
 import type { Widget } from '../types/widget'
+import { convertHexColor } from './utils'
 
 export const checkbox: WidgetPlugin = {
   type: 'checkbox',
@@ -164,7 +165,7 @@ export const checkbox: WidgetPlugin = {
     
     // Text style
     const textStyles: string[] = []
-    if (widget.text_color) textStyles.push(`${indent}  text_color: ${widget.text_color}`)
+    if (widget.text_color) textStyles.push(`${indent}  text_color: ${convertHexColor(widget.text_color)}`)
     if (widget.text_opa !== undefined) textStyles.push(`${indent}  text_opa: ${widget.text_opa}%`)
     if (widget.text_font) textStyles.push(`${indent}  text_font: ${widget.text_font}`)
     
@@ -177,9 +178,9 @@ export const checkbox: WidgetPlugin = {
     if (widget.indicator) {
       const indicatorStyles: string[] = []
       
-      if (widget.indicator.bg_color) indicatorStyles.push(`${indent}    bg_color: ${widget.indicator.bg_color}`)
+      if (widget.indicator.bg_color) indicatorStyles.push(`${indent}    bg_color: ${convertHexColor(widget.indicator.bg_color)}`)
       if (widget.indicator.bg_opa !== undefined) indicatorStyles.push(`${indent}    bg_opa: ${widget.indicator.bg_opa}%`)
-      if (widget.indicator.border_color) indicatorStyles.push(`${indent}    border_color: ${widget.indicator.border_color}`)
+      if (widget.indicator.border_color) indicatorStyles.push(`${indent}    border_color: ${convertHexColor(widget.indicator.border_color)}`)
       if (widget.indicator.border_width !== undefined) indicatorStyles.push(`${indent}    border_width: ${widget.indicator.border_width}`)
       if (widget.indicator.border_opa !== undefined) indicatorStyles.push(`${indent}    border_opa: ${widget.indicator.border_opa}%`)
       if (widget.indicator.radius !== undefined) indicatorStyles.push(`${indent}    radius: ${widget.indicator.radius}`)

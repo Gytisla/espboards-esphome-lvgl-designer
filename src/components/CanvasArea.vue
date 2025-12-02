@@ -20,6 +20,10 @@ const panStartOffsetX = ref(0)
 const panStartOffsetY = ref(0)
 const isPanLocked = ref(true)
 
+// Widget click tracking
+const widgetClickStartX = ref(0)
+const widgetClickStartY = ref(0)
+
 function handleWheel(event: WheelEvent) {
   event.preventDefault()
   
@@ -775,6 +779,24 @@ function handleWidgetClick(event: MouseEvent, widget: Widget) {
   store.selectWidget(widget.id)
 }
 
+function handleWidgetMouseDown(event: MouseEvent, widget: Widget) {
+  // Track initial position for click detection
+  widgetClickStartX.value = event.clientX
+  widgetClickStartY.value = event.clientY
+}
+
+function handleWidgetMouseUp(event: MouseEvent, widget: Widget) {
+  // Check if mouse hasn't moved much (indicating a click, not a drag)
+  const moveThreshold = 5 // pixels
+  const moved = Math.abs(event.clientX - widgetClickStartX.value) > moveThreshold ||
+                Math.abs(event.clientY - widgetClickStartY.value) > moveThreshold
+  
+  if (!moved) {
+    event.stopPropagation()
+    store.selectWidget(widget.id)
+  }
+}
+
 function handleWidgetDragStart(event: DragEvent, widget: Widget) {
   event.stopPropagation()
   store.isDraggingWidget = true
@@ -1218,7 +1240,9 @@ function getWidgetStyle(widget: Widget) {
           :data-widget-id="widget.id"
           :data-widget-type="widget.type"
           draggable="true"
-          @click="(event) => { if (event.target === event.currentTarget) handleWidgetClick(event, widget) }"
+          @click.stop="handleWidgetClick($event, widget)"
+          @mousedown="handleWidgetMouseDown($event, widget)"
+          @mouseup.stop="handleWidgetMouseUp($event, widget)"
           @dragstart="handleWidgetDragStart($event, widget)"
         >
           <WidgetRenderer :widget="widget" :hoveredDropTargetId="hoveredDropTargetId" :isPreview="false" />

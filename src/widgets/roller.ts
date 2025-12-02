@@ -1,5 +1,6 @@
 import type { WidgetPlugin } from './types'
 import type { Widget } from '../types/widget'
+import { convertHexColor } from './utils'
 
 export const rollerWidget: WidgetPlugin = {
   type: 'roller',
@@ -121,7 +122,7 @@ export const rollerWidget: WidgetPlugin = {
     
     // Text styling
     if (widget.text_color) {
-      lines.push(`${indent}text_color: ${widget.text_color}`)
+      lines.push(`${indent}text_color: ${convertHexColor(widget.text_color)}`)
     }
     
     if (widget.text_line_space) {
@@ -130,7 +131,7 @@ export const rollerWidget: WidgetPlugin = {
     
     // Background styling
     if (widget.bg_color) {
-      lines.push(`${indent}bg_color: ${widget.bg_color}`)
+      lines.push(`${indent}bg_color: ${convertHexColor(widget.bg_color)}`)
     }
     
     if (widget.border_width) {
@@ -138,7 +139,7 @@ export const rollerWidget: WidgetPlugin = {
     }
     
     if (widget.border_color) {
-      lines.push(`${indent}border_color: ${widget.border_color}`)
+      lines.push(`${indent}border_color: ${convertHexColor(widget.border_color)}`)
     }
     
     if (widget.radius !== undefined) {

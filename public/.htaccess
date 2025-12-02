@@ -1,0 +1,91 @@
+# ESPHome LVGL Designer - Apache Configuration for SEO & Performance
+
+# Enable GZIP compression
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
+</IfModule>
+
+# Enable browser caching
+<IfModule mod_expires.c>
+  ExpiresActive On
+  
+  # Default cache
+  ExpiresDefault "access plus 1 month"
+  
+  # Cache busting for files with version hashes
+  ExpiresByType text/html "access plus 0 seconds"
+  ExpiresByType application/json "access plus 0 seconds"
+  
+  # Cache static assets longer
+  ExpiresByType image/jpeg "access plus 1 year"
+  ExpiresByType image/gif "access plus 1 year"
+  ExpiresByType image/png "access plus 1 year"
+  ExpiresByType image/webp "access plus 1 year"
+  ExpiresByType image/x-icon "access plus 1 year"
+  ExpiresByType image/svg+xml "access plus 1 year"
+  ExpiresByType font/ttf "access plus 1 year"
+  ExpiresByType font/woff "access plus 1 year"
+  ExpiresByType font/woff2 "access plus 1 year"
+  ExpiresByType application/font-woff "access plus 1 year"
+</IfModule>
+
+# Set proper Cache-Control headers
+<IfModule mod_headers.c>
+  Header set Cache-Control "public, max-age=31536000, immutable" env=ASSETS
+  Header set Cache-Control "public, max-age=0, must-revalidate" env=DOCUMENT
+  
+  # Remove server header for security
+  Header always unset "X-Powered-By"
+  Header unset "X-Powered-By"
+</IfModule>
+
+# Enable HTTPS redirect (uncomment if using HTTPS)
+# <IfModule mod_rewrite.c>
+#   RewriteEngine On
+#   RewriteCond %{HTTPS} off
+#   RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+# </IfModule>
+
+# URL rewriting for Vue Router (SPA)
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+  
+  # Don't rewrite if it's a real file or directory
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  
+  # Rewrite all requests to index.html for SPA routing
+  RewriteRule ^ index.html [QSA,L]
+</IfModule>
+
+# Security headers for SEO and user privacy
+<IfModule mod_headers.c>
+  # Prevent click-jacking
+  Header always set X-Frame-Options "SAMEORIGIN"
+  
+  # Enable XSS protection
+  Header always set X-XSS-Protection "1; mode=block"
+  
+  # Prevent MIME type sniffing
+  Header always set X-Content-Type-Options "nosniff"
+  
+  # Referrer policy (good for privacy and analytics)
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  
+  # Content Security Policy (basic)
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:;"
+</IfModule>
+
+# Proper MIME types for web fonts
+<IfModule mod_mime.c>
+  AddType application/font-woff woff
+  AddType application/font-woff2 woff2
+  AddType application/vnd.ms-fontobject eot
+  AddType application/x-font-ttf ttf
+  AddType font/opentype otf
+</IfModule>
+
+# SEO-friendly error pages (optional)
+# ErrorDocument 404 /404.html
+# ErrorDocument 500 /500.html

@@ -1,5 +1,6 @@
 import type { WidgetPlugin, PropertyGroup } from './types'
 import type { Widget } from '../types/widget'
+import { convertHexColor } from './utils'
 
 export const buttonmatrixWidget: WidgetPlugin = {
   type: 'buttonmatrix',
@@ -111,29 +112,29 @@ export const buttonmatrixWidget: WidgetPlugin = {
     }
     
     // Style properties
-    if (widget.bg_color) yaml += `${indent}bg_color: ${widget.bg_color}\n`
+    if (widget.bg_color) yaml += `${indent}bg_color: ${convertHexColor(widget.bg_color)}\n`
     if (widget.pad_row !== undefined) yaml += `${indent}pad_row: ${widget.pad_row}\n`
     if (widget.pad_column !== undefined) yaml += `${indent}pad_column: ${widget.pad_column}\n`
     
     // Items styles
     if (widget.items) {
       yaml += `${indent}items:\n`
-      if (widget.items.bg_color) yaml += `${indent}  bg_color: ${widget.items.bg_color}\n`
-      if (widget.items.text_color) yaml += `${indent}  text_color: ${widget.items.text_color}\n`
+      if (widget.items.bg_color) yaml += `${indent}  bg_color: ${convertHexColor(widget.items.bg_color)}\n`
+      if (widget.items.text_color) yaml += `${indent}  text_color: ${convertHexColor(widget.items.text_color)}\n`
       
       if (widget.items.pressed) {
         yaml += `${indent}  pressed:\n`
-        if (widget.items.pressed.bg_color) yaml += `${indent}    bg_color: ${widget.items.pressed.bg_color}\n`
+        if (widget.items.pressed.bg_color) yaml += `${indent}    bg_color: ${convertHexColor(widget.items.pressed.bg_color)}\n`
       }
       
       if (widget.items.checked) {
         yaml += `${indent}  checked:\n`
-        if (widget.items.checked.bg_color) yaml += `${indent}    bg_color: ${widget.items.checked.bg_color}\n`
+        if (widget.items.checked.bg_color) yaml += `${indent}    bg_color: ${convertHexColor(widget.items.checked.bg_color)}\n`
       }
       
       if (widget.items.disabled) {
         yaml += `${indent}  disabled:\n`
-        if (widget.items.disabled.bg_color) yaml += `${indent}    bg_color: ${widget.items.disabled.bg_color}\n`
+        if (widget.items.disabled.bg_color) yaml += `${indent}    bg_color: ${convertHexColor(widget.items.disabled.bg_color)}\n`
       }
     }
     

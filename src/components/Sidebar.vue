@@ -249,6 +249,14 @@ function selectTileWidget(tileviewWidget: Widget, tileIndex: number, widgetId: s
   store.selectWidget(widgetId)
 }
 
+function handleColorPickerKeydown(event: KeyboardEvent) {
+  // Close the color picker when Escape is pressed
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    ;(event.target as HTMLInputElement).blur()
+  }
+}
+
 function removeTileWidget(tileviewWidget: Widget, tileIndex: number, widgetId: string) {
   if (tileviewWidget.tiles && tileviewWidget.tiles[tileIndex]?.widgets) {
     const widgetIndex = tileviewWidget.tiles[tileIndex].widgets!.findIndex((w: any) => w.id === widgetId)
@@ -1691,6 +1699,7 @@ function getWidgetIcon(widget: Widget): string {
                     store.saveState()
                   }
                 }"
+                @keydown="handleColorPickerKeydown"
                 class="w-10 h-9 rounded border border-gray-600 bg-gray-800 cursor-pointer"
                 title="Pick canvas background color"
               />
@@ -1906,6 +1915,7 @@ function getWidgetIcon(widget: Widget): string {
                 type="color"
                 :value="store.selectedWidget.text_color || '#ffffff'"
                 @input="handleInputChange('text_color', ($event.target as HTMLInputElement).value)"
+                @keydown="handleColorPickerKeydown"
                 class="w-10 h-9 rounded border border-gray-600 bg-gray-800 cursor-pointer"
                 title="Pick text color"
               />
@@ -1926,6 +1936,7 @@ function getWidgetIcon(widget: Widget): string {
                 type="color"
                 :value="store.selectedWidget.bg_color || '#4f46e5'"
                 @input="handleInputChange('bg_color', ($event.target as HTMLInputElement).value)"
+                @keydown="handleColorPickerKeydown"
                 class="w-10 h-9 rounded border border-gray-600 bg-gray-800 cursor-pointer"
                 title="Pick background color"
               />
@@ -2056,6 +2067,7 @@ function getWidgetIcon(widget: Widget): string {
                     type="color"
                     :value="store.selectedWidget.indicator?.bg_color || '#4F46E5'"
                     @input="handleIndicatorChange('bg_color', ($event.target as HTMLInputElement).value)"
+                    @keydown="handleColorPickerKeydown"
                     class="w-10 h-9 rounded border border-gray-600 bg-gray-800 cursor-pointer"
                   />
                   <input
@@ -2092,6 +2104,7 @@ function getWidgetIcon(widget: Widget): string {
                     type="color"
                     :value="store.selectedWidget.knob?.bg_color || '#818CF8'"
                     @input="handleKnobChange('bg_color', ($event.target as HTMLInputElement).value)"
+                    @keydown="handleColorPickerKeydown"
                     class="w-10 h-9 rounded border border-gray-600 bg-gray-800 cursor-pointer"
                   />
                   <input
@@ -2110,6 +2123,7 @@ function getWidgetIcon(widget: Widget): string {
                     type="color"
                     :value="store.selectedWidget.knob?.border_color || '#6366F1'"
                     @input="handleKnobChange('border_color', ($event.target as HTMLInputElement).value)"
+                    @keydown="handleColorPickerKeydown"
                     class="w-10 h-9 rounded border border-gray-600 bg-gray-800 cursor-pointer"
                   />
                   <input
@@ -2410,6 +2424,7 @@ function getWidgetIcon(widget: Widget): string {
                   type="color"
                   :value="getLvglColorAsHex()"
                   @input="handleColorPickerInput"
+                  @keydown="handleColorPickerKeydown"
                   class="w-10 h-9 rounded border border-gray-600 bg-gray-800 cursor-pointer"
                   title="Pick a color"
                 />
@@ -2461,6 +2476,7 @@ function getWidgetIcon(widget: Widget): string {
                   type="color"
                   :value="store.selectedWidget.line_color || '#FFFFFF'"
                   @input="handleInputChange('line_color', ($event.target as HTMLInputElement).value)"
+                  @keydown="handleColorPickerKeydown"
                   class="w-10 h-9 rounded border border-gray-600 bg-gray-800 cursor-pointer"
                   title="Pick a color"
                 />
@@ -2578,6 +2594,7 @@ function getWidgetIcon(widget: Widget): string {
                     type="color"
                     :value="store.selectedWidget.indicator?.bg_color || (store.selectedWidget.checked ? '#4f46e5' : '#374151')"
                     @input="handleIndicatorChange('bg_color', ($event.target as HTMLInputElement).value)"
+                    @keydown="handleColorPickerKeydown"
                     class="w-10 h-9 rounded border border-gray-600 bg-gray-800 cursor-pointer"
                     title="Pick background color"
                   />
@@ -2620,6 +2637,7 @@ function getWidgetIcon(widget: Widget): string {
                     type="color"
                     :value="store.selectedWidget.indicator?.border_color || (store.selectedWidget.checked ? '#4f46e5' : '#6b7280')"
                     @input="handleIndicatorChange('border_color', ($event.target as HTMLInputElement).value)"
+                    @keydown="handleColorPickerKeydown"
                     class="w-10 h-9 rounded border border-gray-600 bg-gray-800 cursor-pointer"
                     title="Pick border color"
                   />
@@ -2716,6 +2734,7 @@ function getWidgetIcon(widget: Widget): string {
                 type="color"
                 :value="store.selectedWidget.color || '#FF0000'"
                 @input="handleInputChange('color', ($event.target as HTMLInputElement).value)"
+                @keydown="handleColorPickerKeydown"
                 class="w-10 h-9 rounded border border-gray-600 bg-gray-800 cursor-pointer"
                 title="Pick LED color"
               />
@@ -2788,6 +2807,7 @@ function getWidgetIcon(widget: Widget): string {
                 type="color"
                 :value="store.selectedWidget.light_color || '#FFFFFF'"
                 @input="handleInputChange('light_color', ($event.target as HTMLInputElement).value)"
+                @keydown="handleColorPickerKeydown"
                 class="w-10 h-9 rounded border border-gray-600 bg-gray-800 cursor-pointer"
                 title="Pick light color"
               />
@@ -2808,6 +2828,7 @@ function getWidgetIcon(widget: Widget): string {
                 type="color"
                 :value="store.selectedWidget.dark_color || '#000000'"
                 @input="handleInputChange('dark_color', ($event.target as HTMLInputElement).value)"
+                @keydown="handleColorPickerKeydown"
                 class="w-10 h-9 rounded border border-gray-600 bg-gray-800 cursor-pointer"
                 title="Pick dark color"
               />
@@ -2953,6 +2974,7 @@ function getWidgetIcon(widget: Widget): string {
                   type="color"
                   :value="store.selectedWidget.indicator?.bg_color || '#4F46E5'"
                   @input="handleIndicatorChange('bg_color', ($event.target as HTMLInputElement).value)"
+                  @keydown="handleColorPickerKeydown"
                   class="w-full h-8 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 cursor-pointer"
                 />
               </div>
@@ -2981,6 +3003,7 @@ function getWidgetIcon(widget: Widget): string {
                   type="color"
                   :value="store.selectedWidget.knob?.bg_color || '#FFFFFF'"
                   @input="handleKnobChange('bg_color', ($event.target as HTMLInputElement).value)"
+                  @keydown="handleColorPickerKeydown"
                   class="w-full h-8 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 cursor-pointer"
                 />
               </div>
@@ -3036,6 +3059,7 @@ function getWidgetIcon(widget: Widget): string {
                 type="color"
                 :value="store.selectedWidget.arc_color || '#818CF8'"
                 @input="handleInputChange('arc_color', ($event.target as HTMLInputElement).value)"
+                @keydown="handleColorPickerKeydown"
                 class="w-10 h-9 rounded border border-gray-600 bg-gray-800 cursor-pointer"
                 title="Pick arc color"
               />

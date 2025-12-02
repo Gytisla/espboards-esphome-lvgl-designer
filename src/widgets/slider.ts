@@ -1,5 +1,6 @@
 import type { WidgetPlugin } from './types'
 import type { Widget } from '../types/widget'
+import { convertHexColor } from './utils'
 
 export const sliderWidget: WidgetPlugin = {
   type: 'slider',
@@ -47,7 +48,7 @@ export const sliderWidget: WidgetPlugin = {
     if (widget.value !== undefined) yaml += `${indent}value: ${widget.value}\n`
     if (widget.min_value !== undefined) yaml += `${indent}min_value: ${widget.min_value}\n`
     if (widget.max_value !== undefined) yaml += `${indent}max_value: ${widget.max_value}\n`
-    if (widget.bg_color) yaml += `${indent}bg_color: ${widget.bg_color}\n`
+    if (widget.bg_color) yaml += `${indent}bg_color: ${convertHexColor(widget.bg_color)}\n`
     return yaml
   },
 }

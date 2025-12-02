@@ -1,5 +1,6 @@
 import type { WidgetPlugin } from './types'
 import type { Widget } from '../types/widget'
+import { convertHexColor } from './utils'
 
 export const spinboxWidget: WidgetPlugin = {
   type: 'spinbox',
@@ -149,11 +150,11 @@ export const spinboxWidget: WidgetPlugin = {
     
     // Styling
     if (widget.text_color) {
-      lines.push(`${indent}text_color: ${widget.text_color}`)
+      lines.push(`${indent}text_color: ${convertHexColor(widget.text_color)}`)
     }
     
     if (widget.bg_color) {
-      lines.push(`${indent}bg_color: ${widget.bg_color}`)
+      lines.push(`${indent}bg_color: ${convertHexColor(widget.bg_color)}`)
     }
     
     if (widget.border_width) {
@@ -161,7 +162,7 @@ export const spinboxWidget: WidgetPlugin = {
     }
     
     if (widget.border_color) {
-      lines.push(`${indent}border_color: ${widget.border_color}`)
+      lines.push(`${indent}border_color: ${convertHexColor(widget.border_color)}`)
     }
     
     if (widget.radius !== undefined) {

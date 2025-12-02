@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import type { Widget, WidgetType } from '@/types/widget'
 import { widgetRegistry, getWidget } from '@/widgets'
+import { convertHexColor } from '@/widgets/utils'
 import yaml from 'js-yaml'
 
 const STORAGE_KEY = 'lvglDesignerState'
@@ -694,7 +695,7 @@ export const useDesignerStore = defineStore('designer', () => {
       
       // Export bg_color (only if explicitly set)
       if (activeTab?.bg_color !== undefined) {
-        yamlString += '      bg_color: ' + activeTab.bg_color + '\n'
+        yamlString += '      bg_color: ' + convertHexColor(activeTab.bg_color) + '\n'
       }
       
       // Export bg_opa (only if explicitly set)

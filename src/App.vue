@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { useDesignerStore } from './stores/designer'
 import DesignerHeader from './components/DesignerHeader.vue'
 import Toolbox from './components/Toolbox.vue'
@@ -11,6 +12,7 @@ import ShortcutsModal from './components/ShortcutsModal.vue'
 import PreviewModal from './components/PreviewModal.vue'
 
 const store = useDesignerStore()
+const route = useRoute()
 
 onMounted(() => {
   store.loadState()
@@ -62,7 +64,11 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="h-screen w-screen overflow-hidden flex flex-col bg-gray-50 dark:bg-gray-900">
+  <!-- Help Pages and Other Routes -->
+  <router-view v-if="route.path.startsWith('/help') || route.path === '/about'" />
+  
+  <!-- Designer Interface (Default) -->
+  <div v-else class="h-screen w-screen overflow-hidden flex flex-col bg-gray-50 dark:bg-gray-900">
     <!-- Fixed Header -->
     <DesignerHeader />
     

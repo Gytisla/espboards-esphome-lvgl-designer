@@ -1,5 +1,6 @@
 import type { Widget } from '../types/widget'
 import type { WidgetPlugin } from './types'
+import { convertHexColor } from './utils'
 
 export interface Tile {
   id: string
@@ -73,7 +74,7 @@ export const tileviewWidget: WidgetPlugin = {
     
     // Styling
     if (widget.bg_color) {
-      lines.push(`${indent}bg_color: ${widget.bg_color}`)
+      lines.push(`${indent}bg_color: ${convertHexColor(widget.bg_color)}`)
     }
     
     if (widget.bg_opa !== undefined && widget.bg_opa !== 100) {
@@ -81,7 +82,7 @@ export const tileviewWidget: WidgetPlugin = {
     }
     
     if (widget.border_color) {
-      lines.push(`${indent}border_color: ${widget.border_color}`)
+      lines.push(`${indent}border_color: ${convertHexColor(widget.border_color)}`)
     }
     
     if (widget.border_width !== undefined && widget.border_width > 0) {
