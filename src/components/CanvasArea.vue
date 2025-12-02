@@ -222,6 +222,16 @@ function cancelCustomResolution() {
   customResolutionError.value = ''
 }
 
+// Save notification ref
+const showSaveNotification = ref(false)
+
+function showSaveNotificationBriefly() {
+  showSaveNotification.value = true
+  setTimeout(() => {
+    showSaveNotification.value = false
+  }, 2000)
+}
+
 // Keyboard shortcuts
 function handleKeyDown(event: KeyboardEvent) {
   // Check if user is typing in an input field
@@ -273,6 +283,13 @@ function handleKeyDown(event: KeyboardEvent) {
   if (ctrlOrCmd && event.key.toLowerCase() === 'i') {
     event.preventDefault()
     store.showImportModal = true
+  }
+  
+  // Ctrl/Cmd + S - Save manually
+  if (ctrlOrCmd && event.key.toLowerCase() === 's') {
+    event.preventDefault()
+    store.saveState()
+    showSaveNotificationBriefly()
   }
   
   // Ctrl/Cmd + Z - Undo
@@ -857,6 +874,17 @@ function getWidgetStyle(widget: Widget) {
 
 <template>
   <div class="h-full flex flex-col bg-gray-100 dark:bg-gray-800">
+    <!-- Save Notification -->
+    <transition name="fade">
+      <div
+        v-if="showSaveNotification"
+        class="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 z-50"
+      >
+        <Icon icon="check-circle" size="18" />
+        <span>Saved successfully</span>
+      </div>
+    </transition>
+
     <!-- Canvas Tabs Bar -->
     <div class="shrink-0 bg-gray-200 dark:bg-gray-900 border-b border-gray-300 dark:border-gray-700 flex items-center">
       <div class="flex-1 flex items-center overflow-x-auto">
@@ -1285,5 +1313,16 @@ function getWidgetStyle(widget: Widget) {
 /* For Firefox */
 * {
   scrollbar-width: none;
+}
+
+/* Fade transition for save notification */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>
