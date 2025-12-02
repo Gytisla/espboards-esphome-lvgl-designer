@@ -24,6 +24,12 @@ const isPanLocked = ref(true)
 const widgetClickStartX = ref(0)
 const widgetClickStartY = ref(0)
 
+// Line point editing
+const editingLineWidgetId = ref<string | null>(null)
+const editingPointIndex = ref<number | null>(null)
+const pointDragStartX = ref(0)
+const pointDragStartY = ref(0)
+
 function handleWheel(event: WheelEvent) {
   event.preventDefault()
   
@@ -363,6 +369,15 @@ onUnmounted(() => {
   const canvasViewport = document.getElementById('canvas-viewport')
   if (canvasViewport) {
     canvasViewport.removeEventListener('wheel', handleWheel)
+  }
+  // Clean up resize listeners with capture flag
+  if (boundResizeMove) {
+    document.removeEventListener('mousemove', boundResizeMove)
+    boundResizeMove = null
+  }
+  if (boundResizeEnd) {
+    document.removeEventListener('mouseup', boundResizeEnd, true)
+    boundResizeEnd = null
   }
 })
 
@@ -852,34 +867,42 @@ const resizeStartY = ref(0)
 const resizeStartWidth = ref(0)
 const resizeStartHeight = ref(0)
 
-function handleResizeStart(event: MouseEvent, widget: Widget) {
-  event.stopPropagation()
-  event.preventDefault()
-  
-  isResizing.value = true
-  resizingWidgetId.value = widget.id
-  
-  const canvas = document.getElementById('canvas')
-  if (canvas) {
-    const canvasRect = canvas.getBoundingClientRect()
-    resizeStartX.value = (event.clientX - canvasRect.left) / store.currentScale
-    resizeStartY.value = (event.clientY - canvasRect.top) / store.currentScale
-  }
-  
-  resizeStartWidth.value = widget.width || 100
-  resizeStartHeight.value = widget.height || 100
-  
-  store.selectWidget(widget.id)
-  
-  // Add global mouse event listeners
-  document.addEventListener('mousemove', handleResizeMove)
-  document.addEventListener('mouseup', handleResizeEnd)
-}
+// Create bound handlers to ensure proper cleanup
+let boundResizeMove: ((event: MouseEvent) => void) | null = null
+let boundResizeEnd: ((event: MouseEvent) => void) | null = null
 
 function handleResizeMove(event: MouseEvent) {
   if (!isResizing.value || !resizingWidgetId.value) return
   
-  const widget = store.widgets.find(w => w.id === resizingWidgetId.value)
+  // Helper to find widget and its parent container recursively
+  const findWidgetAndParent = (id: string, widgets: Widget[], parentWidget: Widget | null = null): { widget: Widget | undefined, parent: Widget | null } => {
+    for (const w of widgets) {
+      if (w.id === id) return { widget: w, parent: parentWidget }
+      
+      // Search in tabs
+      if (w.tabs) {
+        for (const tab of w.tabs) {
+          if (tab.widgets) {
+            const result = findWidgetAndParent(id, tab.widgets, w)
+            if (result.widget) return result
+          }
+        }
+      }
+      
+      // Search in tiles
+      if (w.tiles) {
+        for (const tile of w.tiles) {
+          if (tile.widgets) {
+            const result = findWidgetAndParent(id, tile.widgets, w)
+            if (result.widget) return result
+          }
+        }
+      }
+    }
+    return { widget: undefined, parent: null }
+  }
+  
+  const { widget, parent } = findWidgetAndParent(resizingWidgetId.value, store.widgets)
   if (!widget) return
   
   const canvas = document.getElementById('canvas')
@@ -896,9 +919,16 @@ function handleResizeMove(event: MouseEvent) {
   let newWidth = Math.max(20, resizeStartWidth.value + deltaX)
   let newHeight = Math.max(20, resizeStartHeight.value + deltaY)
   
-  // Constrain to canvas boundaries (max size = canvas width/height - widget position)
-  const maxWidth = store.canvasWidth - widget.x
-  const maxHeight = store.canvasHeight - widget.y
+  // Determine max boundaries based on parent container
+  let maxWidth = store.canvasWidth - widget.x
+  let maxHeight = store.canvasHeight - widget.y
+  
+  if (parent) {
+    // Widget is nested in a container - constrain to parent's size
+    maxWidth = (parent.width || store.canvasWidth) - widget.x
+    maxHeight = (parent.height || store.canvasHeight) - widget.y
+  }
+  
   newWidth = Math.min(newWidth, maxWidth)
   newHeight = Math.min(newHeight, maxHeight)
   
@@ -910,15 +940,78 @@ function handleResizeMove(event: MouseEvent) {
   widget.height = newHeight
 }
 
-function handleResizeEnd() {
-  if (isResizing.value) {
-    isResizing.value = false
-    resizingWidgetId.value = null
-    store.saveState()
-    
-    document.removeEventListener('mousemove', handleResizeMove)
-    document.removeEventListener('mouseup', handleResizeEnd)
+function handleResizeEnd(event?: MouseEvent) {
+  // Only proceed if we're actually resizing
+  if (!isResizing.value) return
+  
+  // Prevent event from bubbling FIRST
+  if (event) {
+    event.stopPropagation()
+    event.preventDefault()
   }
+  
+  // IMMEDIATELY set to false and remove listeners BEFORE saving
+  isResizing.value = false
+  resizingWidgetId.value = null
+  
+  // Remove listeners using the SAME function references
+  if (boundResizeMove) {
+    document.removeEventListener('mousemove', boundResizeMove)
+    boundResizeMove = null
+  }
+  if (boundResizeEnd) {
+    document.removeEventListener('mouseup', boundResizeEnd, true)
+    boundResizeEnd = null
+  }
+  
+  // Save state after cleanup is complete
+  store.saveState()
+}
+
+function handleResizeStart(event: MouseEvent, widget: Widget) {
+  event.stopPropagation()
+  event.preventDefault()
+  
+  // Clean up any existing listeners first
+  if (boundResizeMove) {
+    document.removeEventListener('mousemove', boundResizeMove)
+    boundResizeMove = null
+  }
+  if (boundResizeEnd) {
+    document.removeEventListener('mouseup', boundResizeEnd, true)
+    boundResizeEnd = null
+  }
+  
+  isResizing.value = true
+  resizingWidgetId.value = widget.id
+  
+  const canvas = document.getElementById('canvas')
+  if (canvas) {
+    const canvasRect = canvas.getBoundingClientRect()
+    resizeStartX.value = (event.clientX - canvasRect.left) / store.currentScale
+    resizeStartY.value = (event.clientY - canvasRect.top) / store.currentScale
+  }
+  
+  resizeStartWidth.value = widget.width || 100
+  resizeStartHeight.value = widget.height || 100
+  
+  store.selectWidget(widget.id)
+  
+  // Create bound handlers for this specific resize operation
+  boundResizeMove = (e: MouseEvent) => {
+    if (isResizing.value) {
+      handleResizeMove(e)
+    }
+  }
+  
+  boundResizeEnd = (e: MouseEvent) => {
+    handleResizeEnd(e)
+  }
+  
+  // Add global mouse event listeners with bound handlers
+  document.addEventListener('mousemove', boundResizeMove)
+  // Use { capture: true } so the resize end fires BEFORE the global handleMouseUp
+  document.addEventListener('mouseup', boundResizeEnd, { capture: true })
 }
 
 function getWidgetStyle(widget: Widget) {

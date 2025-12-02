@@ -11,6 +11,9 @@ interface Props {
   isNested?: boolean
   hoveredDropTargetId?: string | null
   isPreview?: boolean
+  editingLineWidgetId?: string | null
+  editingPointIndex?: number | null
+  onPointClick?: (widgetId: string, pointIndex: number) => void
 }
 
 const props = defineProps<Props>()
@@ -22,6 +25,10 @@ const resizeStartX = ref(0)
 const resizeStartY = ref(0)
 const resizeStartWidth = ref(0)
 const resizeStartHeight = ref(0)
+
+// Bound handlers for nested resize - persists across resize operations
+let boundNestedResizeMove: ((event: MouseEvent) => void) | null = null
+let boundNestedResizeEnd: ((event: MouseEvent) => void) | null = null
 
 // Dropdown state for preview interactivity
 const openDropdownId = ref<string | null>(null)
@@ -112,10 +119,21 @@ function handleNestedResizeStart(event: MouseEvent, childWidget: Widget) {
   event.stopPropagation()
   event.preventDefault()
   
+  // Clean up any existing listeners first
+  if (boundNestedResizeMove) {
+    document.removeEventListener('mousemove', boundNestedResizeMove)
+    boundNestedResizeMove = null
+  }
+  if (boundNestedResizeEnd) {
+    document.removeEventListener('mouseup', boundNestedResizeEnd, true)
+    boundNestedResizeEnd = null
+  }
+  
   isResizing.value = true
   resizingWidgetId.value = childWidget.id
   
-  const tabContent = (event.target as HTMLElement).closest('[data-tabview-content]')
+  const tabContent = (event.target as HTMLElement).closest('[data-tabview-content]') ||
+                      (event.target as HTMLElement).closest('[data-tileview-content]')
   if (tabContent) {
     const rect = tabContent.getBoundingClientRect()
     resizeStartX.value = (event.clientX - rect.left) / store.currentScale
@@ -127,53 +145,72 @@ function handleNestedResizeStart(event: MouseEvent, childWidget: Widget) {
   
   store.selectWidget(childWidget.id)
   
-  document.addEventListener('mousemove', handleNestedResizeMove)
-  document.addEventListener('mouseup', handleNestedResizeEnd)
-}
-
-function handleNestedResizeMove(event: MouseEvent) {
-  if (!isResizing.value || !resizingWidgetId.value) return
-  
-  const widget = store.selectedWidget
-  if (!widget) return
-  
-  const tabContent = document.querySelector('[data-tabview-content]')
-  if (!tabContent) return
-  
-  const rect = tabContent.getBoundingClientRect()
-  const currentX = (event.clientX - rect.left) / store.currentScale
-  const currentY = (event.clientY - rect.top) / store.currentScale
-  
-  const deltaX = currentX - resizeStartX.value
-  const deltaY = currentY - resizeStartY.value
-  
-  let newWidth = Math.max(20, resizeStartWidth.value + deltaX)
-  let newHeight = Math.max(20, resizeStartHeight.value + deltaY)
-  
-  // Constrain to tab content area boundaries
-  const tabContentWidth = rect.width / store.currentScale
-  const tabContentHeight = rect.height / store.currentScale
-  const maxWidth = tabContentWidth - widget.x
-  const maxHeight = tabContentHeight - widget.y
-  newWidth = Math.min(newWidth, maxWidth)
-  newHeight = Math.min(newHeight, maxHeight)
-  
-  newWidth = Math.round(newWidth / 10) * 10
-  newHeight = Math.round(newHeight / 10) * 10
-  
-  widget.width = newWidth
-  widget.height = newHeight
-}
-
-function handleNestedResizeEnd() {
-  if (isResizing.value) {
-    isResizing.value = false
-    resizingWidgetId.value = null
-    store.saveState()
+  // Create bound handlers that persist for cleanup
+  boundNestedResizeMove = (moveEvent: MouseEvent) => {
+    if (!isResizing.value || !resizingWidgetId.value) return
     
-    document.removeEventListener('mousemove', handleNestedResizeMove)
-    document.removeEventListener('mouseup', handleNestedResizeEnd)
+    const widget = store.selectedWidget
+    if (!widget) return
+    
+    // Find the container (tabview or tileview)
+    const tabContent = document.querySelector('[data-tabview-content]') ||
+                       document.querySelector('[data-tileview-content]')
+    if (!tabContent) return
+    
+    const rect = tabContent.getBoundingClientRect()
+    const currentX = (moveEvent.clientX - rect.left) / store.currentScale
+    const currentY = (moveEvent.clientY - rect.top) / store.currentScale
+    
+    const deltaX = currentX - resizeStartX.value
+    const deltaY = currentY - resizeStartY.value
+    
+    let newWidth = Math.max(20, resizeStartWidth.value + deltaX)
+    let newHeight = Math.max(20, resizeStartHeight.value + deltaY)
+    
+    // Constrain to container content area boundaries
+    const containerWidth = rect.width / store.currentScale
+    const containerHeight = rect.height / store.currentScale
+    const maxWidth = containerWidth - widget.x
+    const maxHeight = containerHeight - widget.y
+    newWidth = Math.min(newWidth, maxWidth)
+    newHeight = Math.min(newHeight, maxHeight)
+    
+    // Snap to grid (10px)
+    newWidth = Math.round(newWidth / 10) * 10
+    newHeight = Math.round(newHeight / 10) * 10
+    
+    widget.width = newWidth
+    widget.height = newHeight
   }
+  
+  boundNestedResizeEnd = (endEvent: MouseEvent) => {
+    endEvent.stopPropagation()
+    endEvent.preventDefault()
+    
+    // IMMEDIATELY set to false and remove listeners
+    if (isResizing.value) {
+      isResizing.value = false
+      resizingWidgetId.value = null
+    }
+    
+    // Remove listeners using the SAME function references
+    if (boundNestedResizeMove) {
+      document.removeEventListener('mousemove', boundNestedResizeMove)
+      boundNestedResizeMove = null
+    }
+    if (boundNestedResizeEnd) {
+      document.removeEventListener('mouseup', boundNestedResizeEnd, true)
+      boundNestedResizeEnd = null
+    }
+    
+    // Save state after cleanup
+    store.saveState()
+  }
+  
+  // Add global mouse event listeners with bound handlers
+  document.addEventListener('mousemove', boundNestedResizeMove)
+  // Use { capture: true } so the resize end fires BEFORE the global handleMouseUp
+  document.addEventListener('mouseup', boundNestedResizeEnd, { capture: true })
 }
 
 // Format spinbox value with proper digit count and decimal places
@@ -391,10 +428,11 @@ function getLineDashArray(widget: Widget): string {
   return `${widget.line_dash_width} ${dashGap}`
 }
 
-// Handle clicking on a line point for editing (optional for future enhancement)
+// Handle clicking on a line point for editing
 function selectPointForEditing(index: number, widget: Widget) {
-  // This can be enhanced later to support interactive point selection/editing
-  console.log(`Clicked point ${index} of line widget`, widget)
+  if (props.onPointClick) {
+    props.onPointClick(widget.id, index)
+  }
 }
 
 // Keyboard layout helpers
