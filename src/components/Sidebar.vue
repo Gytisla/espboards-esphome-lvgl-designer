@@ -77,6 +77,17 @@ function stopResizeWidth() {
 
 function handleInputChange(property: string, value: any) {
   if (store.selectedWidget) {
+    // Validate that certain properties cannot be negative
+    // Note: width, height, and start_value must be >= 0, but value, min_value, max_value can be negative
+    const nonNegativeProps = ['width', 'height', 'start_value']
+    if (nonNegativeProps.includes(property)) {
+      const numValue = Number(value)
+      if (!isNaN(numValue) && numValue < 0) {
+        console.warn(`Property '${property}' cannot be negative. Setting to 0.`)
+        value = 0
+      }
+    }
+    
     // Constrain width and height to canvas/tab boundaries
     if (property === 'width' || property === 'height') {
       const numValue = Number(value)
@@ -1681,6 +1692,7 @@ function getWidgetIcon(widget: Widget): string {
             <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Width</label>
             <input
               type="number"
+              min="0"
               :value="store.selectedWidget.width"
               @input="handleNumberInput('width', $event)"
               class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
@@ -1691,6 +1703,7 @@ function getWidgetIcon(widget: Widget): string {
             <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Height</label>
             <input
               type="number"
+              min="0"
               :value="store.selectedWidget.height"
               @input="handleNumberInput('height', $event)"
               class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
@@ -1755,6 +1768,36 @@ function getWidgetIcon(widget: Widget): string {
           </div>
         </div>
 
+        <!-- Button-specific properties -->
+        <div v-if="store.selectedWidget.type === 'button'" class="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-3">
+          <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Button Settings</div>
+          
+          <div>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                :checked="store.selectedWidget.checkable || false"
+                @change="handleInputChange('checkable', ($event.target as HTMLInputElement).checked)"
+                class="w-4 h-4 text-indigo-600 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 rounded focus:ring-indigo-500"
+              />
+              <span class="text-xs font-medium text-gray-600 dark:text-gray-400">Checkable (Toggle Button)</span>
+            </label>
+            <p class="text-[10px] text-gray-500 mt-1 ml-6">Makes the button remain pressed in checked state</p>
+          </div>
+
+          <div v-if="store.selectedWidget.checkable">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                :checked="store.selectedWidget.checked || false"
+                @change="handleInputChange('checked', ($event.target as HTMLInputElement).checked)"
+                class="w-4 h-4 text-indigo-600 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 rounded focus:ring-indigo-500"
+              />
+              <span class="text-xs font-medium text-gray-600 dark:text-gray-400">Initially Checked</span>
+            </label>
+          </div>
+        </div>
+
         <!-- Text Align -->
         <div v-if="'text_align' in store.selectedWidget">
           <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Text Align</label>
@@ -1800,6 +1843,300 @@ function getWidgetIcon(widget: Widget): string {
           </div>
         </div>
 
+        <!-- Bar Mode (for bars) -->
+        <div v-if="store.selectedWidget.type === 'bar'">
+          <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Mode</label>
+          <select
+            :value="store.selectedWidget.mode || 'NORMAL'"
+            @change="handleInputChange('mode', ($event.target as HTMLSelectElement).value)"
+            class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          >
+            <option value="NORMAL">NORMAL - Min to Value</option>
+            <option value="RANGE">RANGE - Start to Value</option>
+            <option value="SYMMETRICAL">SYMMETRICAL - Middle to Value</option>
+          </select>
+        </div>
+
+        <!-- Start Value (for RANGE mode bars) -->
+        <div v-if="store.selectedWidget.type === 'bar' && store.selectedWidget.mode === 'RANGE'">
+          <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Start Value</label>
+          <input
+            type="number"
+            min="0"
+            :value="store.selectedWidget.start_value"
+            @input="handleNumberInput('start_value', $event)"
+            class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          />
+        </div>
+
+        <!-- Slider-specific properties -->
+        <div v-if="store.selectedWidget.type === 'slider'" class="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-3">
+          <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Slider Settings</div>
+          
+          <!-- Indicator settings -->
+          <div>
+            <div class="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Indicator (Value Display)</div>
+            <div class="space-y-2 pl-2 border-l-2 border-gray-300 dark:border-gray-700">
+              <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">Background Color</label>
+                <div class="flex gap-2">
+                  <input
+                    type="color"
+                    :value="store.selectedWidget.indicator?.bg_color || '#4F46E5'"
+                    @input="handleIndicatorChange('bg_color', ($event.target as HTMLInputElement).value)"
+                    class="w-10 h-9 rounded border border-gray-600 bg-gray-800 cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    :value="store.selectedWidget.indicator?.bg_color || ''"
+                    @input="handleIndicatorChange('bg_color', ($event.target as HTMLInputElement).value)"
+                    placeholder="Auto"
+                    class="flex-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono"
+                  />
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">Opacity (%)</label>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  :value="store.selectedWidget.indicator?.bg_opa || 100"
+                  @input="handleIndicatorChange('bg_opa', Number(($event.target as HTMLInputElement).value))"
+                  class="w-full"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Knob settings -->
+          <div>
+            <div class="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Knob (Control Handle)</div>
+            <div class="space-y-2 pl-2 border-l-2 border-gray-300 dark:border-gray-700">
+              <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">Background Color</label>
+                <div class="flex gap-2">
+                  <input
+                    type="color"
+                    :value="store.selectedWidget.knob?.bg_color || '#818CF8'"
+                    @input="handleKnobChange('bg_color', ($event.target as HTMLInputElement).value)"
+                    class="w-10 h-9 rounded border border-gray-600 bg-gray-800 cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    :value="store.selectedWidget.knob?.bg_color || ''"
+                    @input="handleKnobChange('bg_color', ($event.target as HTMLInputElement).value)"
+                    placeholder="Auto"
+                    class="flex-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono"
+                  />
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">Border Color</label>
+                <div class="flex gap-2">
+                  <input
+                    type="color"
+                    :value="store.selectedWidget.knob?.border_color || '#6366F1'"
+                    @input="handleKnobChange('border_color', ($event.target as HTMLInputElement).value)"
+                    class="w-10 h-9 rounded border border-gray-600 bg-gray-800 cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    :value="store.selectedWidget.knob?.border_color || ''"
+                    @input="handleKnobChange('border_color', ($event.target as HTMLInputElement).value)"
+                    placeholder="Auto"
+                    class="flex-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono"
+                  />
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">Border Width (pixels)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="10"
+                  :value="store.selectedWidget.knob?.border_width || 0"
+                  @input="handleKnobChange('border_width', Number(($event.target as HTMLInputElement).value))"
+                  class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">Corner Radius (pixels)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="50"
+                  :value="store.selectedWidget.knob?.radius || 0"
+                  @input="handleKnobChange('radius', Number(($event.target as HTMLInputElement).value))"
+                  class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">Padding (pixels)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="50"
+                  :value="store.selectedWidget.knob?.pad_all || 0"
+                  @input="handleKnobChange('pad_all', Number(($event.target as HTMLInputElement).value))"
+                  class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+                <p class="text-[10px] text-gray-500 mt-1">Makes the knob larger in all directions</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Spinbox Settings -->
+        <div v-if="store.selectedWidget.type === 'spinbox'" class="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-3">
+          <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Spinbox Settings</div>
+          
+          <div>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Range From</label>
+            <input
+              type="number"
+              :value="store.selectedWidget.range_from !== undefined ? store.selectedWidget.range_from : 0"
+              @input="handleNumberInput('range_from', $event)"
+              class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Range To</label>
+            <input
+              type="number"
+              :value="store.selectedWidget.range_to !== undefined ? store.selectedWidget.range_to : 100"
+              @input="handleNumberInput('range_to', $event)"
+              class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Digits</label>
+            <input
+              type="number"
+              :value="store.selectedWidget.digits !== undefined ? store.selectedWidget.digits : 4"
+              @input="handleNumberInput('digits', $event)"
+              min="1"
+              max="10"
+              class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+            <p class="text-[10px] text-gray-500 mt-1">Number of digits (1-10)</p>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Decimal Places</label>
+            <input
+              type="number"
+              :value="store.selectedWidget.decimal_places !== undefined ? store.selectedWidget.decimal_places : 0"
+              @input="handleNumberInput('decimal_places', $event)"
+              min="0"
+              max="6"
+              class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+            <p class="text-[10px] text-gray-500 mt-1">Digits after decimal point (0-6)</p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <input
+              type="checkbox"
+              :checked="store.selectedWidget.rollover || false"
+              @change="handleInputChange('rollover', ($event.target as HTMLInputElement).checked)"
+              class="rounded border-gray-600 text-indigo-600 bg-gray-800 focus:ring-2 focus:ring-indigo-500"
+            />
+            <label class="text-xs font-medium text-gray-400">Rollover</label>
+            <div class="group relative">
+              <span class="text-gray-400 cursor-help">ⓘ</span>
+              <div class="invisible group-hover:visible absolute z-10 bg-gray-900 text-gray-200 text-xs rounded p-2 bottom-full left-0 w-48 mb-2">
+                When enabled, value wraps from max to min and vice versa. When disabled, value stays at limit.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Textarea Settings -->
+        <div v-if="store.selectedWidget.type === 'textarea'" class="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-3">
+          <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Textarea Settings</div>
+          
+          <div>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Text</label>
+            <textarea
+              :value="store.selectedWidget.text || ''"
+              @input="handleInputChange('text', ($event.target as HTMLTextAreaElement).value)"
+              rows="3"
+              class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+            ></textarea>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Placeholder Text</label>
+            <input
+              type="text"
+              :value="store.selectedWidget.placeholder_text || ''"
+              @input="handleInputChange('placeholder_text', ($event.target as HTMLInputElement).value)"
+              placeholder="Enter placeholder text"
+              class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Max Length</label>
+            <input
+              type="number"
+              :value="store.selectedWidget.max_length !== undefined ? store.selectedWidget.max_length : ''"
+              @input="handleNumberInput('max_length', $event)"
+              min="1"
+              max="10000"
+              placeholder="No limit"
+              class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Accepted Characters</label>
+            <input
+              type="text"
+              :value="store.selectedWidget.accepted_chars || ''"
+              @input="handleInputChange('accepted_chars', ($event.target as HTMLInputElement).value)"
+              placeholder="e.g., 0-9 for digits only"
+              class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+            <p class="text-[10px] text-gray-500 mt-1">Characters allowed in the textarea</p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <input
+              type="checkbox"
+              :checked="store.selectedWidget.one_line || false"
+              @change="handleInputChange('one_line', ($event.target as HTMLInputElement).checked)"
+              class="rounded border-gray-600 text-indigo-600 bg-gray-800 focus:ring-2 focus:ring-indigo-500"
+            />
+            <label class="text-xs font-medium text-gray-400">One Line Mode</label>
+            <div class="group relative">
+              <span class="text-gray-400 cursor-help">ⓘ</span>
+              <div class="invisible group-hover:visible absolute z-10 bg-gray-900 text-gray-200 text-xs rounded p-2 bottom-full left-0 w-48 mb-2">
+                Limits textarea to a single line. Line breaks are ignored and word wrap is disabled.
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <input
+              type="checkbox"
+              :checked="store.selectedWidget.password_mode || false"
+              @change="handleInputChange('password_mode', ($event.target as HTMLInputElement).checked)"
+              class="rounded border-gray-600 text-indigo-600 bg-gray-800 focus:ring-2 focus:ring-indigo-500"
+            />
+            <label class="text-xs font-medium text-gray-400">Password Mode</label>
+            <div class="group relative">
+              <span class="text-gray-400 cursor-help">ⓘ</span>
+              <div class="invisible group-hover:visible absolute z-10 bg-gray-900 text-gray-200 text-xs rounded p-2 bottom-full left-0 w-48 mb-2">
+                Hides input characters using • (bullet) or * (asterisk).
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Checked (for checkbox/switch) -->
         <div v-if="'checked' in store.selectedWidget" class="flex items-center gap-2">
           <input
@@ -1809,17 +2146,6 @@ function getWidgetIcon(widget: Widget): string {
             class="rounded border-gray-600 text-indigo-600 bg-gray-800 focus:ring-2 focus:ring-indigo-500"
           />
           <label class="text-xs font-medium text-gray-400">Checked</label>
-        </div>
-
-        <!-- Options (for dropdowns/rollers) -->
-        <div v-if="'options' in store.selectedWidget">
-          <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Options (comma-separated)</label>
-          <input
-            type="text"
-            :value="store.selectedWidget.options"
-            @input="handleInputChange('options', ($event.target as HTMLInputElement).value)"
-            class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-          />
         </div>
 
         <!-- Angle (for arc, meter) -->
@@ -1961,7 +2287,7 @@ function getWidgetIcon(widget: Widget): string {
               <div class="relative">
                 <input
                   type="color"
-                  :value="store.selectedWidget.line_color || '#333333'"
+                  :value="store.selectedWidget.line_color || '#FFFFFF'"
                   @input="handleInputChange('line_color', ($event.target as HTMLInputElement).value)"
                   class="w-10 h-9 rounded border border-gray-600 bg-gray-800 cursor-pointer"
                   title="Pick a color"
@@ -1970,9 +2296,9 @@ function getWidgetIcon(widget: Widget): string {
               <!-- Hex Input -->
               <input
                 type="text"
-                :value="store.selectedWidget.line_color || '#333333'"
+                :value="store.selectedWidget.line_color || '#FFFFFF'"
                 @input="handleInputChange('line_color', ($event.target as HTMLInputElement).value)"
-                placeholder="#333333"
+                placeholder="#FFFFFF"
                 class="flex-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono"
               />
             </div>
@@ -1980,13 +2306,347 @@ function getWidgetIcon(widget: Widget): string {
           </div>
           
           <div v-if="'line_width' in store.selectedWidget">
-            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Width</label>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Line Width (pixels)</label>
             <input
               type="number"
+              min="1"
               :value="store.selectedWidget.line_width || 2"
               @input="handleNumberInput('line_width', $event)"
               class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
+          </div>
+
+          <div v-if="'line_rounded' in store.selectedWidget" class="flex items-center gap-2">
+            <input
+              type="checkbox"
+              :checked="store.selectedWidget.line_rounded"
+              @change="handleInputChange('line_rounded', ($event.target as HTMLInputElement).checked)"
+              class="rounded border-gray-600 text-indigo-600 bg-gray-800 focus:ring-2 focus:ring-indigo-500"
+            />
+            <label class="text-xs font-medium text-gray-400">Rounded Endpoints</label>
+          </div>
+
+          <!-- Points Editor -->
+          <div v-if="store.selectedWidget && 'points' in store.selectedWidget" class="border-t border-gray-700 pt-3">
+            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Line Points</div>
+            <div class="space-y-2">
+              <div v-for="(point, index) in (store.selectedWidget.points || [])" :key="index" class="grid grid-cols-3 gap-2 items-end">
+                <div>
+                  <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">X{{ index }}</label>
+                  <input
+                    type="number"
+                    :value="point.x"
+                    @input="(e) => {
+                      const widget = store.selectedWidget
+                      if (widget?.points?.[index]) {
+                        widget.points[index]!.x = Number((e.target as HTMLInputElement).value)
+                        store.saveState()
+                      }
+                    }"
+                    class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Y{{ index }}</label>
+                  <input
+                    type="number"
+                    :value="point.y"
+                    @input="(e) => {
+                      const widget = store.selectedWidget
+                      if (widget?.points?.[index]) {
+                        widget.points[index]!.y = Number((e.target as HTMLInputElement).value)
+                        store.saveState()
+                      }
+                    }"
+                    class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  />
+                </div>
+                <button
+                  v-if="(store.selectedWidget?.points?.length || 0) > 2"
+                  @click="() => {
+                    const widget = store.selectedWidget
+                    if (widget?.points) {
+                      widget.points.splice(index, 1)
+                      store.saveState()
+                    }
+                  }"
+                  class="px-2 py-1.5 text-xs bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+            <button
+              @click="() => {
+                const widget = store.selectedWidget
+                if (widget?.points) {
+                  const lastPoint = widget.points[widget.points.length - 1]
+                  widget.points.push({ x: (lastPoint?.x || 0) + 10, y: (lastPoint?.y || 0) + 10 })
+                  store.saveState()
+                }
+              }"
+              class="mt-2 w-full px-3 py-2 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
+            >
+              + Add Point
+            </button>
+          </div>
+        </div>
+
+        <!-- Checkbox-specific properties -->
+        <div v-if="store.selectedWidget.type === 'checkbox'" class="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-3">
+          <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Checkbox Settings</div>
+          
+          <div>
+            <div class="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Indicator (Tick Box)</div>
+            <div class="space-y-3 pl-2 border-l-2 border-gray-300 dark:border-gray-700">
+              <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">Background Color</label>
+                <div class="flex gap-2">
+                  <input
+                    type="color"
+                    :value="store.selectedWidget.indicator?.bg_color || (store.selectedWidget.checked ? '#4f46e5' : '#374151')"
+                    @input="handleIndicatorChange('bg_color', ($event.target as HTMLInputElement).value)"
+                    class="w-10 h-9 rounded border border-gray-600 bg-gray-800 cursor-pointer"
+                    title="Pick background color"
+                  />
+                  <input
+                    type="text"
+                    :value="store.selectedWidget.indicator?.bg_color || ''"
+                    @input="handleIndicatorChange('bg_color', ($event.target as HTMLInputElement).value)"
+                    placeholder="Auto"
+                    class="flex-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">Background Opacity (%)</label>
+                <div class="flex gap-2">
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    :value="store.selectedWidget.indicator?.bg_opa || 100"
+                    @input="handleIndicatorChange('bg_opa', Number(($event.target as HTMLInputElement).value))"
+                    class="flex-1"
+                  />
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    :value="store.selectedWidget.indicator?.bg_opa || 100"
+                    @input="handleIndicatorChange('bg_opa', Number(($event.target as HTMLInputElement).value))"
+                    class="w-16 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">Border Color</label>
+                <div class="flex gap-2">
+                  <input
+                    type="color"
+                    :value="store.selectedWidget.indicator?.border_color || (store.selectedWidget.checked ? '#4f46e5' : '#6b7280')"
+                    @input="handleIndicatorChange('border_color', ($event.target as HTMLInputElement).value)"
+                    class="w-10 h-9 rounded border border-gray-600 bg-gray-800 cursor-pointer"
+                    title="Pick border color"
+                  />
+                  <input
+                    type="text"
+                    :value="store.selectedWidget.indicator?.border_color || ''"
+                    @input="handleIndicatorChange('border_color', ($event.target as HTMLInputElement).value)"
+                    placeholder="Auto"
+                    class="flex-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">Border Width (pixels)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="10"
+                  :value="store.selectedWidget.indicator?.border_width || 2"
+                  @input="handleIndicatorChange('border_width', Number(($event.target as HTMLInputElement).value))"
+                  class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">Corner Radius (pixels)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="50"
+                  :value="store.selectedWidget.indicator?.radius || 4"
+                  @input="handleIndicatorChange('radius', Number(($event.target as HTMLInputElement).value))"
+                  class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">Padding (pixels)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="50"
+                  :value="store.selectedWidget.indicator?.pad_all || 0"
+                  @input="handleIndicatorChange('pad_all', Number(($event.target as HTMLInputElement).value))"
+                  class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+                <p class="text-[10px] text-gray-500 mt-1">Makes the tick box larger in all directions</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Keyboard-specific properties -->
+        <div v-if="store.selectedWidget.type === 'keyboard'" class="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-3">
+          <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Keyboard Settings</div>
+          
+          <div>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Mode</label>
+            <select
+              :value="store.selectedWidget.keyboard_mode || 'TEXT_LOWER'"
+              @change="handleInputChange('keyboard_mode', ($event.target as HTMLSelectElement).value)"
+              class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            >
+              <option value="TEXT_LOWER">TEXT_LOWER - Lower case letters</option>
+              <option value="TEXT_UPPER">TEXT_UPPER - Upper case letters</option>
+              <option value="TEXT_SPECIAL">TEXT_SPECIAL - Special characters</option>
+              <option value="NUMBER">NUMBER - Numbers and symbols</option>
+            </select>
+            <p class="text-[10px] text-gray-500 mt-1">TEXT layouts allow user to switch between them</p>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Textarea ID</label>
+            <input
+              type="text"
+              :value="store.selectedWidget.textarea || ''"
+              @input="handleInputChange('textarea', ($event.target as HTMLInputElement).value)"
+              placeholder="my_textarea_id"
+              class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+            <p class="text-[10px] text-gray-500 mt-1">ID of a textarea to associate with this keyboard</p>
+          </div>
+        </div>
+
+        <!-- LED-specific properties -->
+        <div v-if="store.selectedWidget.type === 'led'" class="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-3">
+          <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">LED Settings</div>
+          
+          <div>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Color</label>
+            <div class="flex gap-2">
+              <input
+                type="color"
+                :value="store.selectedWidget.color || '#FF0000'"
+                @input="handleInputChange('color', ($event.target as HTMLInputElement).value)"
+                class="w-10 h-9 rounded border border-gray-600 bg-gray-800 cursor-pointer"
+                title="Pick LED color"
+              />
+              <input
+                type="text"
+                :value="store.selectedWidget.color || '#FF0000'"
+                @input="handleInputChange('color', ($event.target as HTMLInputElement).value)"
+                placeholder="#FF0000"
+                class="flex-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Brightness (%)</label>
+            <div class="flex gap-2">
+              <input
+                type="range"
+                min="0"
+                max="100"
+                :value="store.selectedWidget.brightness || 100"
+                @input="handleNumberInput('brightness', $event)"
+                class="flex-1"
+              />
+              <input
+                type="number"
+                min="0"
+                max="100"
+                :value="store.selectedWidget.brightness || 100"
+                @input="handleNumberInput('brightness', $event)"
+                class="w-16 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- QR Code-specific properties -->
+        <div v-if="store.selectedWidget.type === 'qrcode'" class="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-3">
+          <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">QR Code Settings</div>
+          
+          <div>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Text / URL</label>
+            <input
+              type="text"
+              :value="store.selectedWidget.text || ''"
+              @input="handleInputChange('text', ($event.target as HTMLInputElement).value)"
+              placeholder="esphome.io"
+              class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+            <p class="text-[10px] text-gray-500 mt-1">Text to encode in the QR code</p>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">QR Size (pixels)</label>
+            <input
+              type="number"
+              min="50"
+              max="500"
+              :value="store.selectedWidget.qr_size || 100"
+              @input="handleNumberInput('qr_size', $event)"
+              class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+            <p class="text-[10px] text-gray-500 mt-1">Desired size of the QR code</p>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Light Color</label>
+            <div class="flex gap-2">
+              <input
+                type="color"
+                :value="store.selectedWidget.light_color || '#FFFFFF'"
+                @input="handleInputChange('light_color', ($event.target as HTMLInputElement).value)"
+                class="w-10 h-9 rounded border border-gray-600 bg-gray-800 cursor-pointer"
+                title="Pick light color"
+              />
+              <input
+                type="text"
+                :value="store.selectedWidget.light_color || '#FFFFFF'"
+                @input="handleInputChange('light_color', ($event.target as HTMLInputElement).value)"
+                placeholder="#FFFFFF"
+                class="flex-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Dark Color</label>
+            <div class="flex gap-2">
+              <input
+                type="color"
+                :value="store.selectedWidget.dark_color || '#000000'"
+                @input="handleInputChange('dark_color', ($event.target as HTMLInputElement).value)"
+                class="w-10 h-9 rounded border border-gray-600 bg-gray-800 cursor-pointer"
+                title="Pick dark color"
+              />
+              <input
+                type="text"
+                :value="store.selectedWidget.dark_color || '#000000'"
+                @input="handleInputChange('dark_color', ($event.target as HTMLInputElement).value)"
+                placeholder="#000000"
+                class="flex-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono"
+              />
+            </div>
           </div>
         </div>
 
@@ -2018,16 +2678,8 @@ function getWidgetIcon(widget: Widget): string {
             />
           </div>
 
-          <!-- Spread Tabs -->
-          <div class="flex items-center gap-2">
-            <input
-              type="checkbox"
-              :checked="store.selectedWidget.spread_tabs || false"
-              @change="handleInputChange('spread_tabs', ($event.target as HTMLInputElement).checked)"
-              class="rounded border-gray-300 dark:border-gray-600 text-indigo-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-indigo-500"
-            />
-            <label class="text-xs font-medium text-gray-600 dark:text-gray-400">Spread Tabs (Full Width)</label>
-          </div>
+          <!-- Spread Tabs is now always enabled -->
+          <p class="text-xs text-gray-500 dark:text-gray-400">Tabs always spread to fill available width</p>
 
           <div>
             <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Tabs</label>
@@ -2072,6 +2724,19 @@ function getWidgetIcon(widget: Widget): string {
         <!-- Roller & Dropdown Options Management -->
         <div v-if="store.selectedWidget.type === 'roller' || store.selectedWidget.type === 'dropdown'" class="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-3">
           <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Options</div>
+          
+          <div v-if="store.selectedWidget.type === 'roller'">
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Mode</label>
+            <select
+              :value="store.selectedWidget.mode || 'NORMAL'"
+              @change="handleInputChange('mode', ($event.target as HTMLSelectElement).value)"
+              class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            >
+              <option value="NORMAL">NORMAL - Linear</option>
+              <option value="INFINITE">INFINITE - Circular</option>
+            </select>
+            <p class="text-[10px] text-gray-500 mt-1">Make the roller circular (wraps around)</p>
+          </div>
           
           <div>
             <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Option List</label>
@@ -2167,42 +2832,96 @@ function getWidgetIcon(widget: Widget): string {
           <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Spinner Settings</div>
           
           <div>
-            <div class="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Indicator Arc (Spinning Part)</div>
-            <div class="space-y-2 pl-2 border-l-2 border-gray-300 dark:border-gray-700">
-              <div>
-                <label class="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">Arc Color</label>
-                <input
-                  type="color"
-                  :value="store.selectedWidget.indicator?.arc_color || store.selectedWidget.arc_color || '#818CF8'"
-                  @input="handleIndicatorChange('arc_color', ($event.target as HTMLInputElement).value)"
-                  class="w-full h-8 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 cursor-pointer"
-                />
-              </div>
-              <div>
-                <label class="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">Arc Opacity (%)</label>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  step="5"
-                  :value="store.selectedWidget.indicator?.arc_opa || 100"
-                  @input="handleIndicatorChange('arc_opa', Number(($event.target as HTMLInputElement).value))"
-                  class="w-full"
-                />
-                <div class="text-xs text-gray-600 dark:text-gray-500 mt-1">{{ store.selectedWidget.indicator?.arc_opa || 100 }}%</div>
-              </div>
-              <div>
-                <label class="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">Arc Width</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="50"
-                  :value="store.selectedWidget.indicator?.arc_width || store.selectedWidget.arc_width || 8"
-                  @input="handleIndicatorChange('arc_width', Number(($event.target as HTMLInputElement).value))"
-                  class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Spin Time (ms)</label>
+            <input
+              type="number"
+              min="100"
+              max="10000"
+              :value="store.selectedWidget.spin_time || 1000"
+              @input="handleNumberInput('spin_time', $event)"
+              class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+            <p class="text-[10px] text-gray-500 mt-1">Duration of one cycle of the spin</p>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Arc Length (degrees)</label>
+            <input
+              type="number"
+              min="0"
+              max="360"
+              :value="store.selectedWidget.arc_length || 60"
+              @input="handleNumberInput('arc_length', $event)"
+              class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+            <p class="text-[10px] text-gray-500 mt-1">Length of the spinning arc (0-360)</p>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Arc Color</label>
+            <div class="flex gap-2">
+              <input
+                type="color"
+                :value="store.selectedWidget.arc_color || '#818CF8'"
+                @input="handleInputChange('arc_color', ($event.target as HTMLInputElement).value)"
+                class="w-10 h-9 rounded border border-gray-600 bg-gray-800 cursor-pointer"
+                title="Pick arc color"
+              />
+              <input
+                type="text"
+                :value="store.selectedWidget.arc_color || '#818CF8'"
+                @input="handleInputChange('arc_color', ($event.target as HTMLInputElement).value)"
+                placeholder="#818CF8"
+                class="flex-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono"
+              />
             </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Arc Width (pixels)</label>
+            <input
+              type="number"
+              min="1"
+              max="50"
+              :value="store.selectedWidget.arc_width || 8"
+              @input="handleNumberInput('arc_width', $event)"
+              class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Arc Opacity (%)</label>
+            <div class="flex gap-2">
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="5"
+                :value="store.selectedWidget.arc_opa || 100"
+                @input="handleNumberInput('arc_opa', $event)"
+                class="flex-1"
+              />
+              <input
+                type="number"
+                min="0"
+                max="100"
+                :value="store.selectedWidget.arc_opa || 100"
+                @input="handleNumberInput('arc_opa', $event)"
+                class="w-16 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                :checked="store.selectedWidget.arc_rounded || false"
+                @change="handleInputChange('arc_rounded', ($event.target as HTMLInputElement).checked)"
+                class="w-4 h-4 text-indigo-600 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 rounded focus:ring-indigo-500"
+              />
+              <span class="text-xs font-medium text-gray-600 dark:text-gray-400">Rounded Arc Ends</span>
+            </label>
           </div>
         </div>
 

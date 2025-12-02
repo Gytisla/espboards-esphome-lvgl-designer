@@ -385,6 +385,16 @@ function handleCanvasDragOver(event: DragEvent) {
   // Check for tileview tile FIRST (most specific) - ONLY tiles are droppable in tileview!
   const tileElement = targetElement?.closest('[data-tile-id]')
   if (tileElement) {
+    // Get tileview parent to check if we're trying to drag it into itself
+    const tileviewContent = targetElement?.closest('[data-tileview-content]')
+    const tileviewParentId = tileviewContent?.getAttribute('data-parent-id')
+    
+    // Don't highlight if trying to drag a tileview into its own tile
+    if (store.selectedWidget?.id === tileviewParentId) {
+      hoveredDropTargetId.value = null
+      return
+    }
+    
     hoveredDropTargetId.value = tileElement.getAttribute('data-tile-id')
     return
   }
@@ -392,7 +402,15 @@ function handleCanvasDragOver(event: DragEvent) {
   // Check for tabview (tabview itself is droppable)
   const tabviewContent = targetElement?.closest('[data-tabview-content]')
   if (tabviewContent) {
-    hoveredDropTargetId.value = tabviewContent.getAttribute('data-parent-id')
+    const tabviewParentId = tabviewContent.getAttribute('data-parent-id')
+    
+    // Don't highlight if trying to drag a tabview into its own tab
+    if (store.selectedWidget?.id === tabviewParentId) {
+      hoveredDropTargetId.value = null
+      return
+    }
+    
+    hoveredDropTargetId.value = tabviewParentId
     return
   }
   
@@ -611,6 +629,11 @@ function handleCanvasDrop(event: DragEvent) {
         const relativeY = (event.clientY - tileviewRect.top - tileviewPadding) / store.currentScale - store.dragOffsetY
         
         if (store.isDraggingWidget && store.selectedWidget) {
+          // Prevent a tileview from being added to its own tile
+          if (store.selectedWidget.id === tileviewWidget.id) {
+            return
+          }
+          
           // Moving existing widget
           const isAlreadyInTile = tile.widgets?.some((w: any) => w.id === store.selectedWidget?.id)
           
@@ -674,6 +697,11 @@ function handleCanvasDrop(event: DragEvent) {
       const relativeY = rawDropY - tabviewAbsPos.y - contentOffsetY - store.dragOffsetY
       
       if (store.isDraggingWidget && store.selectedWidget) {
+        // Prevent a tabview from being added to its own tab
+        if (store.selectedWidget.id === tabviewWidget.id) {
+          return
+        }
+        
         // Moving existing widget
         const isAlreadyInTab = activeTab.widgets?.some((w: any) => w.id === store.selectedWidget?.id)
         
@@ -1168,10 +1196,10 @@ function getWidgetStyle(widget: Widget) {
           :data-widget-id="widget.id"
           :data-widget-type="widget.type"
           draggable="true"
-          @click="handleWidgetClick($event, widget)"
+          @click="(event) => { if (event.target === event.currentTarget) handleWidgetClick(event, widget) }"
           @dragstart="handleWidgetDragStart($event, widget)"
         >
-          <WidgetRenderer :widget="widget" :hoveredDropTargetId="hoveredDropTargetId" :isPreview="true" />
+          <WidgetRenderer :widget="widget" :hoveredDropTargetId="hoveredDropTargetId" :isPreview="false" />
           
           <!-- Resize handle (bottom-right corner) -->
           <div

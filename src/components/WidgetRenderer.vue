@@ -323,12 +323,94 @@ function getSliderKnobPosition(widget: Widget): number {
 
 // Get bar fill width
 function getBarFillWidth(widget: Widget): number {
-  const value = (widget.value as number) || 60
+  const value = typeof widget.value === 'number' ? widget.value : 0
   const minValue = widget.min_value || 0
   const maxValue = widget.max_value || 100
   const width = widget.width || 150
   
   return ((value - minValue) / (maxValue - minValue)) * width
+}
+
+// Get style for RANGE mode (from start_value to value)
+function getBarRangeFillStyle(widget: Widget): Record<string, string> {
+  const value = typeof widget.value === 'number' ? widget.value : 0
+  const startValue = widget.start_value || 0
+  const minValue = widget.min_value || 0
+  const maxValue = widget.max_value || 100
+  const width = widget.width || 150
+  
+  const range = maxValue - minValue
+  const startPos = ((startValue - minValue) / range) * width
+  const endPos = ((value - minValue) / range) * width
+  
+  const left = Math.min(startPos, endPos)
+  const fillWidth = Math.abs(endPos - startPos)
+  
+  return {
+    left: left + 'px',
+    width: fillWidth + 'px'
+  }
+}
+
+// Get style for SYMMETRICAL mode (from middle point to value)
+function getBarSymmetricalFillStyle(widget: Widget): Record<string, string> {
+  const value = typeof widget.value === 'number' ? widget.value : 0
+  const minValue = widget.min_value || 0
+  const maxValue = widget.max_value || 100
+  const width = widget.width || 150
+  
+  const range = maxValue - minValue
+  const midValue = (minValue + maxValue) / 2
+  const midPos = (width / 2)
+  
+  const valuePos = ((value - minValue) / range) * width
+  
+  const left = Math.min(midPos, valuePos)
+  const fillWidth = Math.abs(valuePos - midPos)
+  
+  return {
+    left: left + 'px',
+    width: fillWidth + 'px'
+  }
+}
+
+// Get SVG points string for line widget polyline
+function getLinePointsString(widget: Widget): string {
+  if (!widget.points || widget.points.length === 0) {
+    return '10,50 90,50' // Default line if no points
+  }
+  return widget.points.map(point => `${point.x},${point.y}`).join(' ')
+}
+
+// Get stroke-dasharray value for line widget
+function getLineDashArray(widget: Widget): string {
+  if (!widget.line_dash_width || widget.line_dash_width === 0) {
+    return '' // Solid line
+  }
+  const dashGap = widget.line_dash_gap || 2
+  return `${widget.line_dash_width} ${dashGap}`
+}
+
+// Handle clicking on a line point for editing (optional for future enhancement)
+function selectPointForEditing(index: number, widget: Widget) {
+  // This can be enhanced later to support interactive point selection/editing
+  console.log(`Clicked point ${index} of line widget`, widget)
+}
+
+// Keyboard layout helpers
+function getKeyboardRow1Keys(mode: string): string[] {
+  if (mode === 'TEXT_SPECIAL') return ['!', '@', '#', '$', '%', '^', '&', '*', '(', ')']
+  return ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P']
+}
+
+function getKeyboardRow2Keys(mode: string): string[] {
+  if (mode === 'TEXT_SPECIAL') return ['-', '_', '=', '+', '[', ']', '{', '}', '|']
+  return ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L']
+}
+
+function getKeyboardRow3Keys(mode: string): string[] {
+  if (mode === 'TEXT_SPECIAL') return [';', ':', "'", '"', '<', '>', '?']
+  return ['Z', 'X', 'C', 'V', 'B', 'N', 'M']
 }
 </script>
 
@@ -371,10 +453,23 @@ function getBarFillWidth(widget: Widget): number {
 
   <!-- Bar Widget -->
   <div v-else-if="widget.type === 'bar'" class="w-full h-full flex items-center p-1">
-    <div class="w-full h-3 bg-gray-700 rounded-full overflow-hidden">
-      <div 
-        class="h-full bg-indigo-500 rounded-full transition-all"
+    <div class="w-full h-3 bg-gray-700 rounded-full overflow-hidden relative">
+      <!-- NORMAL mode: from min to value -->
+      <div v-if="!widget.mode || widget.mode === 'NORMAL'"
+        class="h-full bg-indigo-500 rounded-full transition-all absolute left-0"
         :style="{ width: getBarFillWidth(widget) + 'px' }"
+      ></div>
+      
+      <!-- RANGE mode: from start_value to value -->
+      <div v-else-if="widget.mode === 'RANGE'"
+        class="h-full bg-indigo-500 rounded-full transition-all absolute"
+        :style="getBarRangeFillStyle(widget)"
+      ></div>
+      
+      <!-- SYMMETRICAL mode: from middle point (centered) to value -->
+      <div v-else-if="widget.mode === 'SYMMETRICAL'"
+        class="h-full bg-indigo-500 rounded-full transition-all absolute"
+        :style="getBarSymmetricalFillStyle(widget)"
       ></div>
     </div>
   </div>
@@ -382,14 +477,23 @@ function getBarFillWidth(widget: Widget): number {
   <!-- Button Widget -->
   <div 
     v-else-if="widget.type === 'button'" 
-    class="w-full h-full flex items-center justify-center rounded-lg shadow-md border-2 transition-colors"
+    :class="[
+      'w-full h-full flex items-center justify-center rounded-lg shadow-md transition-all',
+      widget.checked ? 'border-4 shadow-inner' : 'border-2'
+    ]"
     :style="{
-      backgroundColor: widget.bg_color || '#4f46e5',
-      borderColor: widget.bg_color ? widget.bg_color : '#818cf8',
-      color: widget.text_color || '#ffffff'
+      backgroundColor: widget.checked 
+        ? (widget.bg_color ? `color-mix(in srgb, ${widget.bg_color} 80%, black)` : '#3730a3')
+        : (widget.bg_color || '#4f46e5'),
+      borderColor: widget.checked
+        ? (widget.bg_color ? `color-mix(in srgb, ${widget.bg_color} 60%, black)` : '#312e81')
+        : (widget.bg_color ? widget.bg_color : '#818cf8'),
+      color: widget.text_color || '#ffffff',
+      transform: widget.checked ? 'scale(0.98)' : 'scale(1)'
     }"
   >
     <span class="font-medium text-sm px-2 truncate">{{ widget.text || 'Button' }}</span>
+    <span v-if="widget.checkable && widget.checked" class="ml-1 text-xs opacity-75">✓</span>
   </div>
 
   <!-- Checkbox Widget -->
@@ -441,13 +545,27 @@ function getBarFillWidth(widget: Widget): number {
   <!-- Slider Widget -->
   <div v-else-if="widget.type === 'slider'" class="w-full h-full flex items-center p-1">
     <div class="relative w-full h-2 bg-gray-700 rounded-full">
+      <!-- Indicator (filled portion) -->
       <div 
-        class="absolute h-full bg-indigo-500 rounded-full"
-        :style="{ width: getSliderKnobPosition(widget) + 'px' }"
+        class="absolute h-full rounded-full"
+        :style="{ 
+          width: getSliderKnobPosition(widget) + 'px',
+          backgroundColor: widget.indicator?.bg_color || '#4f46e5',
+          opacity: (widget.indicator?.bg_opa ?? 255) / 255
+        }"
       ></div>
+      <!-- Knob -->
       <div 
-        class="absolute w-4 h-4 bg-white rounded-full shadow-md border-2 border-indigo-500 -top-1"
-        :style="{ left: (getSliderKnobPosition(widget) - 8) + 'px' }"
+        class="absolute shadow-md border-2 -top-1"
+        :style="{ 
+          left: (getSliderKnobPosition(widget) - 8) + 'px',
+          width: '1rem',
+          height: '1rem',
+          backgroundColor: widget.knob?.bg_color || '#ffffff',
+          borderColor: widget.knob?.border_color || '#4f46e5',
+          borderRadius: `${widget.knob?.radius ?? 9999}px`,
+          opacity: (widget.knob?.bg_opa ?? 255) / 255
+        }"
       ></div>
     </div>
   </div>
@@ -484,8 +602,8 @@ function getBarFillWidth(widget: Widget): number {
   <!-- QR Code Widget -->
   <div v-else-if="widget.type === 'qrcode'" class="w-full h-full flex items-center justify-center p-2">
     <div class="relative bg-white rounded shadow-sm" :style="{ 
-      width: 'fit-content',
-      height: 'fit-content',
+      width: `${widget.qr_size || 100}px`,
+      height: `${widget.qr_size || 100}px`,
       backgroundColor: widget.light_color || '#FFFFFF',
       borderWidth: widget.border_width ? `${widget.border_width}px` : '0',
       borderStyle: 'solid',
@@ -493,11 +611,11 @@ function getBarFillWidth(widget: Widget): number {
       borderRadius: widget.radius ? `${widget.radius}px` : '0',
       padding: widget.pad_all ? `${widget.pad_all}px` : '8px'
     }">
-      <div class="grid gap-px w-fit h-fit">
+      <div class="w-full h-full grid gap-px">
         <!-- QR Code pattern simulation (8x8 simplified grid) -->
-        <div class="grid grid-cols-8 gap-px">
+        <div class="grid grid-cols-8 gap-px w-full h-full">
           <div v-for="i in 64" :key="i" 
-            class="w-2 h-2"
+            class="w-full h-full"
             :style="{ 
               backgroundColor: (i % 3 === 0 || i === 1 || i === 8 || i === 57 || i === 64) 
                 ? (widget.dark_color || '#000000') 
@@ -515,13 +633,27 @@ function getBarFillWidth(widget: Widget): number {
   <!-- Container Widget -->
   <div v-else-if="widget.type === 'container'" class="w-full h-full border-2 border-dashed border-gray-600 rounded bg-gray-800/30"></div>
 
+  <!-- Object Widget -->
+  <div 
+    v-else-if="widget.type === 'obj'" 
+    class="w-full h-full"
+    :style="{
+      backgroundColor: widget.bg_color || '#4f46e5',
+      borderColor: widget.border_color || '#4b5563',
+      borderWidth: widget.border_width ? `${widget.border_width}px` : '1px',
+      borderStyle: 'solid',
+      borderRadius: widget.radius ? `${widget.radius}px` : '8px',
+      opacity: widget.bg_opa !== undefined ? widget.bg_opa / 100 : 1
+    }"
+  ></div>
+
   <!-- Dropdown Widget -->
   <div 
     v-else-if="widget.type === 'dropdown'" 
     class="relative w-full h-full"
-    @click.stop="props.isPreview ? (openDropdownId = openDropdownId === widget.id ? null : widget.id) : null"
+    @click.stop="props.isPreview && (openDropdownId = openDropdownId === widget.id ? null : widget.id)"
   >
-    <div class="w-full h-full flex items-center justify-between px-2 bg-gray-700 rounded border border-gray-600 cursor-pointer hover:bg-gray-600 transition-colors">
+    <div class="w-full h-full flex items-center justify-between px-2 bg-gray-700 rounded border border-gray-600 transition-colors" :class="props.isPreview ? 'cursor-pointer hover:bg-gray-600' : 'cursor-default'">
       <span class="text-xs text-gray-300 truncate">{{ widget.options?.[widget.selected_index || 0] || 'Select...' }}</span>
       <Icon :icon="openDropdownId === widget.id ? 'chevron-up' : 'chevron-down'" size="14" class="text-gray-400 shrink-0" />
     </div>
@@ -560,10 +692,8 @@ function getBarFillWidth(widget: Widget): number {
       borderRadius: widget.radius ? `${widget.radius}px` : '0.25rem',
       cursor: props.isPreview ? 'pointer' : 'default'
     }"
-    @wheel="(event: WheelEvent) => {
+    @wheel.prevent.stop="(event: WheelEvent) => {
       if (!props.isPreview || !widget.options || widget.options.length === 0) return
-      event.preventDefault()
-      event.stopPropagation()
       const maxIndex = widget.options.length - 1
       const isInfinite = widget.mode === 'INFINITE'
       let newIndex = (widget.selected_index || 0) + (event.deltaY > 0 ? 1 : -1)
@@ -582,9 +712,8 @@ function getBarFillWidth(widget: Widget): number {
       const el = event.currentTarget as HTMLElement
       el.setAttribute('data-touch-start-y', String(event.touches[0]?.clientY ?? 0))
     }"
-    @touchmove="(event: TouchEvent) => {
+    @touchmove.prevent="(event: TouchEvent) => {
       if (!props.isPreview || !widget.options || widget.options.length === 0) return
-      event.preventDefault()
       const el = event.currentTarget as HTMLElement
       const startY = parseFloat(el.getAttribute('data-touch-start-y') ?? '0')
       const currentY = event.touches[0]?.clientY ?? 0
@@ -738,16 +867,16 @@ function getBarFillWidth(widget: Widget): number {
       color: widget.text_color || '#D1D5DB',
       cursor: props.isPreview ? 'grab' : 'default'
     }"
-    @wheel="(event: WheelEvent) => {
+    @wheel.prevent.stop="(event: WheelEvent) => {
       if (!props.isPreview) return
-      event.preventDefault()
-      event.stopPropagation()
       const min = widget.range_from || 0
       const max = widget.range_to || 100
       const decimalPlaces = widget.decimal_places || 0
       const step = Math.pow(10, -decimalPlaces) || 1
       const delta = (event as any).deltaY > 0 ? -step : step
-      widget.value = Math.max(min, Math.min(max, (typeof widget.value === 'number' ? widget.value : 0) + delta))
+      const newValue = (typeof widget.value === 'number' ? widget.value : 0) + delta
+      widget.value = Math.max(min, Math.min(max, newValue))
+      store.saveState()
     }"
   >
     <div class="flex items-center gap-1 font-mono text-sm group" :class="props.isPreview ? 'cursor-grab' : 'cursor-pointer'">
@@ -769,7 +898,9 @@ function getBarFillWidth(widget: Widget): number {
           const max = widget.range_to || 100
           const decimalPlaces = widget.decimal_places || 0
           const step = Math.pow(10, -decimalPlaces) || 1
-          widget.value = Math.min(max, (typeof widget.value === 'number' ? widget.value : 0) + step)
+          const newValue = (typeof widget.value === 'number' ? widget.value : 0) + step
+          widget.value = Math.min(max, newValue)
+          store.saveState()
         }"
         class="p-0.5 hover:bg-indigo-600 rounded transition-colors"
         title="Increment or scroll up"
@@ -781,7 +912,9 @@ function getBarFillWidth(widget: Widget): number {
           const min = widget.range_from || 0
           const decimalPlaces = widget.decimal_places || 0
           const step = Math.pow(10, -decimalPlaces) || 1
-          widget.value = Math.max(min, (typeof widget.value === 'number' ? widget.value : 0) - step)
+          const newValue = (typeof widget.value === 'number' ? widget.value : 0) - step
+          widget.value = Math.max(min, newValue)
+          store.saveState()
         }"
         class="p-0.5 hover:bg-indigo-600 rounded transition-colors"
         title="Decrement or scroll down"
@@ -844,8 +977,8 @@ function getBarFillWidth(widget: Widget): number {
               v-for="childWidget in tile.widgets"
               :key="childWidget.id"
               draggable="true"
-              @click="!props.isPreview ? handleNestedWidgetClick($event, childWidget) : null"
-              @dragstart="!props.isPreview ? handleNestedWidgetDragStart($event, childWidget, widget) : null"
+              @click.stop="(event) => { if (!props.isPreview) handleNestedWidgetClick(event, childWidget) }"
+              @dragstart.stop="(event) => { if (!props.isPreview) handleNestedWidgetDragStart(event, childWidget, widget) }"
               :class="[
                 'absolute border rounded-md cursor-move select-none min-w-5 min-h-5 shadow-md hover:shadow-lg transition-all',
                 props.isPreview && 'pointer-events-none',
@@ -951,15 +1084,27 @@ function getBarFillWidth(widget: Widget): number {
   </svg>
 
   <!-- Line Widget -->
-  <svg v-else-if="widget.type === 'line'" class="w-full h-full">
-    <line
-      x1="10%"
-      y1="50%"
-      x2="90%"
-      y2="50%"
-      stroke="currentColor"
+  <svg v-else-if="widget.type === 'line'" class="w-full h-full" :viewBox="`0 0 ${widget.width || 200} ${widget.height || 100}`">
+    <polyline
+      :points="getLinePointsString(widget)"
+      fill="none"
+      :stroke="widget.line_color || '#FFFFFF'"
       :stroke-width="widget.line_width || 2"
-      class="text-gray-400"
+      :stroke-linecap="widget.line_rounded ? 'round' : 'butt'"
+      :stroke-linejoin="widget.line_rounded ? 'round' : 'miter'"
+      :stroke-dasharray="getLineDashArray(widget)"
+    />
+    <!-- Point indicators for editing -->
+    <circle
+      v-for="(point, index) in (widget.points || [])"
+      :key="index"
+      :cx="point.x"
+      :cy="point.y"
+      r="3"
+      fill="currentColor"
+      class="text-indigo-400 opacity-60 hover:opacity-100 cursor-pointer"
+      @click.stop="selectPointForEditing(index, widget)"
+      :data-point-index="index"
     />
   </svg>
 
@@ -993,48 +1138,88 @@ function getBarFillWidth(widget: Widget): number {
 
   <!-- Keyboard Widget -->
   <div v-else-if="widget.type === 'keyboard'" class="w-full h-full bg-gray-700 rounded border border-gray-600 flex flex-col gap-0.5 p-1">
-    <!-- Row 1 -->
-    <div class="flex gap-0.5 flex-1">
-      <button v-for="key in ['Q','W','E','R','T','Y','U','I','O','P']" :key="key" 
-        class="flex-1 rounded text-[9px] font-medium bg-gray-800 text-gray-200 border border-gray-600 hover:bg-gray-750">
-        {{ widget.keyboard_mode === 'NUMBER' ? '1' : (widget.keyboard_mode === 'TEXT_UPPER' ? key : key.toLowerCase()) }}
-      </button>
-    </div>
-    <!-- Row 2 -->
-    <div class="flex gap-0.5 flex-1">
-      <button v-for="key in ['A','S','D','F','G','H','J','K','L']" :key="key"
-        class="flex-1 rounded text-[9px] font-medium bg-gray-800 text-gray-200 border border-gray-600 hover:bg-gray-750">
-        {{ widget.keyboard_mode === 'NUMBER' ? '2' : (widget.keyboard_mode === 'TEXT_UPPER' ? key : key.toLowerCase()) }}
-      </button>
-    </div>
-    <!-- Row 3 -->
-    <div class="flex gap-0.5 flex-1">
-      <button class="flex-[1.5] rounded text-[9px] font-medium bg-gray-800 text-gray-200 border border-gray-600">
-        <Icon icon="keyboard_capslock" :size="10" />
-      </button>
-      <button v-for="key in ['Z','X','C','V','B','N','M']" :key="key"
-        class="flex-1 rounded text-[9px] font-medium bg-gray-800 text-gray-200 border border-gray-600 hover:bg-gray-750">
-        {{ widget.keyboard_mode === 'NUMBER' ? '3' : (widget.keyboard_mode === 'TEXT_UPPER' ? key : key.toLowerCase()) }}
-      </button>
-      <button class="flex-[1.5] rounded text-[9px] font-medium bg-gray-800 text-gray-200 border border-gray-600">
-        <Icon icon="backspace" :size="10" />
-      </button>
-    </div>
-    <!-- Row 4 -->
-    <div class="flex gap-0.5 flex-1">
-      <button class="flex-[1.5] rounded text-[8px] font-medium bg-gray-800 text-gray-200 border border-gray-600">
-        {{ widget.keyboard_mode === 'NUMBER' ? '0' : (widget.keyboard_mode === 'TEXT_SPECIAL' ? '!@#' : 'ABC') }}
-      </button>
-      <button class="flex-5 rounded text-[9px] font-medium bg-gray-800 text-gray-200 border border-gray-600 hover:bg-gray-750">
-        {{ widget.keyboard_mode === 'NUMBER' ? '.' : 'Space' }}
-      </button>
-      <button class="flex-[1.5] rounded text-[9px] font-medium bg-indigo-600 text-white border border-indigo-500">
-        <Icon icon="check" :size="10" />
-      </button>
-      <button class="flex-[1.5] rounded text-[9px] font-medium bg-gray-800 text-gray-200 border border-gray-600">
-        <Icon icon="keyboard" :size="10" />
-      </button>
-    </div>
+    <!-- NUMBER mode layout -->
+    <template v-if="widget.keyboard_mode === 'NUMBER'">
+      <!-- Row 1: 1-5 -->
+      <div class="flex gap-0.5 flex-1">
+        <button v-for="num in [1,2,3,4,5]" :key="num" 
+          class="flex-1 rounded text-[10px] font-medium bg-gray-800 text-gray-200 border border-gray-600 hover:bg-gray-750">
+          {{ num }}
+        </button>
+      </div>
+      <!-- Row 2: 6-0 -->
+      <div class="flex gap-0.5 flex-1">
+        <button v-for="num in [6,7,8,9,0]" :key="num"
+          class="flex-1 rounded text-[10px] font-medium bg-gray-800 text-gray-200 border border-gray-600 hover:bg-gray-750">
+          {{ num }}
+        </button>
+      </div>
+      <!-- Row 3: Symbols -->
+      <div class="flex gap-0.5 flex-1">
+        <button v-for="sym in ['+','-','*','/','=']" :key="sym"
+          class="flex-1 rounded text-[10px] font-medium bg-gray-800 text-gray-200 border border-gray-600 hover:bg-gray-750">
+          {{ sym }}
+        </button>
+      </div>
+      <!-- Row 4: Special keys -->
+      <div class="flex gap-0.5 flex-1">
+        <button class="flex-1 rounded text-[10px] font-medium bg-gray-800 text-gray-200 border border-gray-600">.</button>
+        <button class="flex-1 rounded text-[10px] font-medium bg-gray-800 text-gray-200 border border-gray-600">,</button>
+        <button class="flex-2 rounded text-[9px] font-medium bg-gray-800 text-gray-200 border border-gray-600">
+          <Icon icon="backspace" :size="10" />
+        </button>
+        <button class="flex-2 rounded text-[9px] font-medium bg-indigo-600 text-white border border-indigo-500">
+          <Icon icon="check" :size="10" />
+        </button>
+      </div>
+    </template>
+    
+    <!-- TEXT modes layout (QWERTY) -->
+    <template v-else>
+      <!-- Row 1 -->
+      <div class="flex gap-0.5 flex-1">
+        <button v-for="(key, idx) in getKeyboardRow1Keys(widget.keyboard_mode || 'TEXT_LOWER')" :key="idx" 
+          class="flex-1 rounded text-[9px] font-medium bg-gray-800 text-gray-200 border border-gray-600 hover:bg-gray-750">
+          {{ widget.keyboard_mode === 'TEXT_UPPER' ? key : key.toLowerCase() }}
+        </button>
+      </div>
+      <!-- Row 2 -->
+      <div class="flex gap-0.5 flex-1">
+        <button v-for="(key, idx) in getKeyboardRow2Keys(widget.keyboard_mode || 'TEXT_LOWER')" :key="idx"
+          class="flex-1 rounded text-[9px] font-medium bg-gray-800 text-gray-200 border border-gray-600 hover:bg-gray-750">
+          {{ widget.keyboard_mode === 'TEXT_UPPER' ? key : key.toLowerCase() }}
+        </button>
+      </div>
+      <!-- Row 3 -->
+      <div class="flex gap-0.5 flex-1">
+        <button class="flex-[1.5] rounded text-[9px] font-medium bg-gray-800 text-gray-200 border border-gray-600">
+          <Icon icon="keyboard_capslock" :size="10" />
+        </button>
+        <button v-for="(key, idx) in getKeyboardRow3Keys(widget.keyboard_mode || 'TEXT_LOWER')" :key="idx"
+          class="flex-1 rounded text-[9px] font-medium bg-gray-800 text-gray-200 border border-gray-600 hover:bg-gray-750">
+          {{ widget.keyboard_mode === 'TEXT_UPPER' ? key : key.toLowerCase() }}
+        </button>
+        <button class="flex-[1.5] rounded text-[9px] font-medium bg-gray-800 text-gray-200 border border-gray-600">
+          <Icon icon="backspace" :size="10" />
+        </button>
+      </div>
+      <!-- Row 4 -->
+      <div class="flex gap-0.5 flex-1">
+        <button class="flex-[1.5] rounded text-[8px] font-medium bg-gray-800 text-gray-200 border border-gray-600">
+          {{ widget.keyboard_mode === 'TEXT_SPECIAL' ? 'ABC' : '!@#' }}
+        </button>
+        <button class="flex-5 rounded text-[9px] font-medium bg-gray-800 text-gray-200 border border-gray-600 hover:bg-gray-750">
+          Space
+        </button>
+        <button class="flex-[1.5] rounded text-[9px] font-medium bg-indigo-600 text-white border border-indigo-500">
+          <Icon icon="check" :size="10" />
+        </button>
+        <button class="flex-[1.5] rounded text-[9px] font-medium bg-gray-800 text-gray-200 border border-gray-600">
+          <Icon icon="keyboard" :size="10" />
+        </button>
+      </div>
+    </template>
+    
     <!-- Mode indicator -->
     <div class="text-[8px] text-gray-400 text-center mt-0.5">
       {{ widget.keyboard_mode || 'TEXT_LOWER' }} 
@@ -1062,9 +1247,8 @@ function getBarFillWidth(widget: Widget): number {
         v-for="(tab, index) in (widget.tabs || [{id: '1', name: 'Tab 1', widgets: []}])" 
         :key="tab.id"
         @click="switchTab($event, widget, index)"
-        class="px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer border-gray-600"
+        class="px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer border-gray-600 flex-1"
         :class="{
-          'flex-1': widget.spread_tabs,
           'bg-gray-800 text-indigo-400': index === (widget.selectedTabIndex || 0),
           'text-gray-400 hover:text-gray-300 hover:bg-gray-750': index !== (widget.selectedTabIndex || 0),
           'border-r': ((widget.position || widget.tab_pos) === 'TOP' || (widget.position || widget.tab_pos) === 'BOTTOM' || !(widget.position || widget.tab_pos)),
@@ -1088,8 +1272,8 @@ function getBarFillWidth(widget: Widget): number {
           v-for="childWidget in (widget.tabs[widget.selectedTabIndex || 0]?.widgets || [])"
           :key="childWidget.id"
           draggable="true"
-          @click="!props.isPreview ? handleNestedWidgetClick($event, childWidget) : null"
-          @dragstart="!props.isPreview ? handleNestedWidgetDragStart($event, childWidget, widget) : null"
+          @click.stop="(event) => { if (!props.isPreview) handleNestedWidgetClick(event, childWidget) }"
+          @dragstart.stop="(event) => { if (!props.isPreview) handleNestedWidgetDragStart(event, childWidget, widget) }"
           :class="[
             'absolute border rounded-md cursor-move select-none min-w-5 min-h-5 shadow-md hover:shadow-lg transition-all',
             props.isPreview && 'pointer-events-none',

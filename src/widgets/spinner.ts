@@ -81,55 +81,55 @@ export const spinnerWidget: WidgetPlugin = {
     },
   ],
   
-  generateYAML: (widget: Widget) => {
+  generateYAML: (widget: Widget, indent: string) => {
     const lines: string[] = []
     
     // Required: spin_time
     const spinTime = widget.spin_time || 1000
-    lines.push(`  spin_time: ${spinTime}ms`)
+    lines.push(`${indent}spin_time: ${spinTime}ms`)
     
     // Required: arc_length
     const arcLength = widget.arc_length !== undefined ? widget.arc_length : 60
-    lines.push(`  arc_length: ${arcLength}deg`)
+    lines.push(`${indent}arc_length: ${arcLength}deg`)
     
     // Arc styling
     if (widget.arc_width && widget.arc_width !== 8) {
-      lines.push(`  arc_width: ${widget.arc_width}`)
+      lines.push(`${indent}arc_width: ${widget.arc_width}`)
     }
     
     if (widget.arc_color) {
-      lines.push(`  arc_color: ${convertHexColor(widget.arc_color)}`)
+      lines.push(`${indent}arc_color: ${convertHexColor(widget.arc_color)}`)
     }
     
     if (widget.arc_opa !== undefined && widget.arc_opa !== 100) {
-      lines.push(`  arc_opa: ${widget.arc_opa}%`)
+      lines.push(`${indent}arc_opa: ${widget.arc_opa}%`)
     }
     
     if (widget.arc_rounded) {
-      lines.push(`  arc_rounded: true`)
+      lines.push(`${indent}arc_rounded: true`)
     }
     
     // Background styling
     if (widget.bg_color) {
-      lines.push(`  bg_color: ${convertHexColor(widget.bg_color)}`)
+      lines.push(`${indent}bg_color: ${convertHexColor(widget.bg_color)}`)
     }
     
     if (widget.bg_opa !== undefined && widget.bg_opa !== 100) {
-      lines.push(`  bg_opa: ${widget.bg_opa}%`)
+      lines.push(`${indent}bg_opa: ${widget.bg_opa}%`)
     }
     
     // Indicator styling (if different from main arc)
     const hasIndicatorStyles = widget.indicator?.arc_color || widget.indicator?.arc_opa !== undefined || widget.indicator?.arc_width
     if (hasIndicatorStyles) {
-      lines.push('  indicator:')
+      lines.push(`${indent}indicator:`)
       if (widget.indicator?.arc_color) {
-        lines.push(`    arc_color: ${convertHexColor(widget.indicator.arc_color)}`)
+        lines.push(`${indent}  arc_color: ${convertHexColor(widget.indicator.arc_color)}`)
       }
       if (widget.indicator?.arc_opa !== undefined) {
-        lines.push(`    arc_opa: ${widget.indicator.arc_opa}%`)
+        lines.push(`${indent}  arc_opa: ${widget.indicator.arc_opa}%`)
       }
       if (widget.indicator?.arc_width) {
-        lines.push(`    arc_width: ${widget.indicator.arc_width}`)
+        lines.push(`${indent}  arc_width: ${widget.indicator.arc_width}`)
       }
     }
     

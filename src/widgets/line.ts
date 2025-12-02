@@ -13,13 +13,14 @@ export const lineWidget: WidgetPlugin = {
     width: 200,
     height: 100,
     points: [
-      { x: 0, y: 0 },
-      { x: 100, y: 50 },
-      { x: 200, y: 0 },
+      { x: 20, y: 50 },
+      { x: 180, y: 50 },
     ],
     line_width: 2,
     line_color: '#FFFFFF',
     line_rounded: false,
+    line_dash_width: 0,
+    line_dash_gap: 2,
   },
   
   properties: [
@@ -47,6 +48,7 @@ export const lineWidget: WidgetPlugin = {
       name: 'line_dash_width',
       label: 'Dash Width',
       type: 'number',
+      default: 0,
       min: 0,
       max: 50,
     },
@@ -54,6 +56,7 @@ export const lineWidget: WidgetPlugin = {
       name: 'line_dash_gap',
       label: 'Dash Gap',
       type: 'number',
+      default: 2,
       min: 0,
       max: 50,
     },

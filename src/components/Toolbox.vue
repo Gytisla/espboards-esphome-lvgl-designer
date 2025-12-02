@@ -28,7 +28,7 @@ const widgetCategories = ref([
     name: 'Display',
     icon: 'visibility',
     description: 'Display & feedback widgets',
-    widgets: ['bar', 'label', 'led', 'line', 'qrcode', 'spinner']
+    widgets: ['bar', 'label', 'led', 'line', 'obj', 'qrcode', 'spinner']
   },
   {
     name: 'Input',

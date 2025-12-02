@@ -65,6 +65,7 @@ export const barWidget: WidgetPlugin = {
           label: 'Start Value',
           type: 'number',
           default: 0,
+          min: 0,
           condition: (widget) => widget.mode === 'RANGE',
         },
       ],

@@ -80,46 +80,46 @@ export const qrcodeWidget: WidgetPlugin = {
     },
   ],
   
-  generateYAML: (widget) => {
+  generateYAML: (widget, indent) => {
     const lines: string[] = []
     
     // Required text property
     if (widget.text) {
-      lines.push(`  text: "${widget.text}"`)
+      lines.push(`${indent}text: "${widget.text}"`)
     }
     
     // Required size property (export as 'size' for ESPHome)
-    lines.push(`  size: ${widget.qr_size || 100}`)
+    lines.push(`${indent}size: ${widget.qr_size || 100}`)
     
     // Light color (defaults to white if not specified)
     if (widget.light_color && widget.light_color !== '#FFFFFF') {
-      lines.push(`  light_color: ${convertHexColor(widget.light_color)}`)
+      lines.push(`${indent}light_color: ${convertHexColor(widget.light_color)}`)
     }
     
     // Dark color (defaults to black if not specified)
     if (widget.dark_color && widget.dark_color !== '#000000') {
-      lines.push(`  dark_color: ${convertHexColor(widget.dark_color)}`)
+      lines.push(`${indent}dark_color: ${convertHexColor(widget.dark_color)}`)
     }
     
     // Additional styling options
     if (widget.bg_color) {
-      lines.push(`  bg_color: ${convertHexColor(widget.bg_color)}`)
+      lines.push(`${indent}bg_color: ${convertHexColor(widget.bg_color)}`)
     }
     
     if (widget.border_width) {
-      lines.push(`  border_width: ${widget.border_width}`)
+      lines.push(`${indent}border_width: ${widget.border_width}`)
     }
     
     if (widget.border_color) {
-      lines.push(`  border_color: ${convertHexColor(widget.border_color)}`)
+      lines.push(`${indent}border_color: ${convertHexColor(widget.border_color)}`)
     }
     
     if (widget.radius !== undefined) {
-      lines.push(`  radius: ${widget.radius}`)
+      lines.push(`${indent}radius: ${widget.radius}`)
     }
     
     if (widget.pad_all) {
-      lines.push(`  pad_all: ${widget.pad_all}`)
+      lines.push(`${indent}pad_all: ${widget.pad_all}`)
     }
     
     return lines.join('\n')

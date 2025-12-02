@@ -11,6 +11,7 @@ import { buttonmatrixWidget } from './buttonmatrix'
 import { checkbox } from './checkbox'
 import { keyboardWidget } from './keyboard'
 import { ledWidget } from './led'
+import { objWidget } from './obj'
 import { qrcodeWidget } from './qrcode'
 import { rollerWidget } from './roller'
 import { spinboxWidget } from './spinbox'
@@ -33,6 +34,7 @@ export const widgetRegistry: WidgetRegistry = {
   checkbox: checkbox,
   keyboard: keyboardWidget,
   led: ledWidget,
+  obj: objWidget,
   qrcode: qrcodeWidget,
   roller: rollerWidget,
   spinbox: spinboxWidget,

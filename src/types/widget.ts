@@ -18,6 +18,7 @@ export type WidgetType =
   | 'list'
   | 'meter'
   | 'msgbox'
+  | 'obj'
   | 'qrcode'
   | 'roller'
   | 'slider'
@@ -99,7 +100,16 @@ export interface Widget {
   }
   knob?: {
     bg_color?: string
+    bg_opa?: number
+    border_color?: string
+    border_width?: number
+    border_opa?: number
     radius?: number
+    pad_all?: number
+    pad_top?: number
+    pad_bottom?: number
+    pad_left?: number
+    pad_right?: number
   }
   // Image properties
   url?: string
@@ -246,6 +256,7 @@ export const widgetTypes: WidgetTypeInfo[] = [
   { type: 'list', name: 'Menu', icon: 'format-list-bulleted' },
   { type: 'meter', name: 'Meter', icon: 'speedometer' },
   { type: 'msgbox', name: 'Message Box', icon: 'message-text' },
+  { type: 'obj', name: 'Object', icon: 'square' },
   { type: 'roller', name: 'Roller', icon: 'unfold-more-horizontal' },
   { type: 'slider', name: 'Slider', icon: 'tune' },
   { type: 'spinbox', name: 'Spinbox', icon: 'numeric' },
@@ -279,6 +290,7 @@ export const widgetIconMap: Record<string, string> = {
   menu: 'menu',
   meter: 'speedometer',
   msgbox: 'message-text',
+  obj: 'square',
   qrcode: 'qr_code_2',
   roller: 'unfold-more-horizontal',
   slider: 'tune',
