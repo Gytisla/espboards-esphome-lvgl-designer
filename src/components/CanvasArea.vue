@@ -49,8 +49,8 @@ function handleWheel(event: WheelEvent) {
 }
 
 function handleMouseDown(event: MouseEvent) {
-  // Middle mouse button or Ctrl+left mouse button for panning (if not locked)
-  if (!isPanLocked.value && (event.button === 1 || (event.button === 0 && event.ctrlKey))) {
+  // Middle mouse button or left mouse button for panning (if not locked)
+  if (!isPanLocked.value && (event.button === 1 || event.button === 0)) {
     event.preventDefault()
     isPanning.value = true
     panStartX.value = event.clientX

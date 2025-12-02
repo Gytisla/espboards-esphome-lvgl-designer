@@ -120,8 +120,8 @@ function handleSliderMouseDown(widget: Widget, event: MouseEvent) {
 }
 
 function handleCanvasMouseDown(event: MouseEvent) {
-  // Ctrl+left mouse button for panning (if not locked)
-  if (!isPanLocked.value && event.button === 0 && event.ctrlKey) {
+  // Left mouse button for panning (if not locked)
+  if (!isPanLocked.value && event.button === 0) {
     event.preventDefault()
     isPanning.value = true
     panStartX.value = event.clientX
@@ -326,6 +326,7 @@ function resetZoom() {
                   1.5×
                 </button>
                 
+
                 <button
                   @click="previewScale = 2"
                   :class="[
@@ -337,6 +338,19 @@ function resetZoom() {
                   title="200% zoom"
                 >
                   2×
+                </button>
+
+                <button
+                  @click="previewScale = 3"
+                  :class="[
+                    'px-2 py-1 text-xs rounded transition-colors',
+                    Math.abs(previewScale - 3) < 0.01
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'
+                  ]"
+                  title="300% zoom"
+                >
+                  3×
                 </button>
                 
                 <button
