@@ -10,6 +10,12 @@ const store = useDesignerStore()
 // Get all widgets from registry
 const widgets = getAllWidgets()
 
+// Toolbox collapsed state
+const isToolboxCollapsed = ref(false)
+const collapsedWidth = 70 // Width when collapsed
+const expandedWidth = 256 // Default width (w-64 = 256px)
+const toolboxWidth = ref(expandedWidth)
+
 // Categorize widgets
 const widgetCategories = ref([
   {
@@ -48,6 +54,11 @@ const toggleCategory = (categoryName: string) => {
   }
 }
 
+function toggleToolboxCollapse() {
+  isToolboxCollapsed.value = !isToolboxCollapsed.value
+  toolboxWidth.value = isToolboxCollapsed.value ? collapsedWidth : expandedWidth
+}
+
 function handleDragStart(event: DragEvent, type: WidgetType) {
   store.draggedWidgetType = type
   store.isDraggingWidget = false
@@ -63,20 +74,84 @@ function handleDragStart(event: DragEvent, type: WidgetType) {
 <template>
   <aside
     :class="[
-      'w-64 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col shrink-0 transition-transform duration-300',
+      'bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col shrink-0 transition-all duration-300',
       store.isToolboxVisible ? 'translate-x-0' : '-translate-x-full absolute'
     ]"
+    :style="{ width: toolboxWidth + 'px' }"
   >
     <!-- Toolbox Header -->
-    <div class="px-4 py-5 border-b-2 border-gray-300 dark:border-gray-600">
-      <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-200">
+    <div class="px-3 py-5 border-b-2 border-gray-300 dark:border-gray-600 flex items-center" :class="isToolboxCollapsed ? 'justify-center' : 'justify-between'">
+      <h2 v-if="!isToolboxCollapsed" class="text-sm font-semibold text-gray-700 dark:text-gray-200">
         Widgets
       </h2>
-      <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Drag to canvas</p>
+      <button
+        @click="toggleToolboxCollapse"
+        class="p-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
+        :title="isToolboxCollapsed ? 'Expand widgets' : 'Collapse widgets'"
+      >
+        <Icon :icon="isToolboxCollapsed ? 'chevron-right' : 'chevron-left'" size="18" />
+      </button>
+    </div>
+    
+    <!-- Collapsed View - Quick Widget Icons (draggable) -->
+    <div v-if="isToolboxCollapsed" class="flex-1 flex flex-col items-center gap-2 py-4 px-1 overflow-y-auto custom-scrollbar">
+      <!-- Containers -->
+      <button
+        v-for="widgetType in ['tabview', 'tileview']"
+        :key="widgetType"
+        draggable="true"
+        @dragstart="handleDragStart($event, widgetType as any)"
+        @dragend="$event.dataTransfer!.dropEffect = 'none'"
+        class="flex flex-col items-center gap-0.5 p-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-indigo-100 dark:hover:bg-indigo-900/30 rounded-lg transition-colors cursor-move active:opacity-75"
+        :title="`Drag ${widgetType} to canvas`"
+      >
+        <Icon :icon="getWidgetInfo(widgetType)?.icon || 'widgets'" size="16" />
+        <span class="text-xs font-medium text-gray-600 dark:text-gray-400 truncate max-w-12">{{ widgetType }}</span>
+      </button>
+      
+      <!-- Separator -->
+      <div class="w-8 border-t border-gray-400 dark:border-gray-600"></div>
+      
+      <!-- Display -->
+      <button
+        v-for="widgetType in ['label', 'bar', 'arc', 'line', 'led', 'qrcode', 'spinner']"
+        :key="widgetType"
+        draggable="true"
+        @dragstart="handleDragStart($event, widgetType as any)"
+        @dragend="$event.dataTransfer!.dropEffect = 'none'"
+        class="flex flex-col items-center gap-0.5 p-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-indigo-100 dark:hover:bg-indigo-900/30 rounded-lg transition-colors cursor-move active:opacity-75"
+        :title="`Drag ${widgetType} to canvas`"
+      >
+        <Icon :icon="getWidgetInfo(widgetType)?.icon || 'widgets'" size="16" />
+        <span class="text-xs font-medium text-gray-600 dark:text-gray-400 truncate max-w-12">{{ widgetType }}</span>
+      </button>
+      
+      <!-- Separator -->
+      <div class="w-8 border-t border-gray-400 dark:border-gray-600"></div>
+      
+      <!-- Input -->
+      <button
+        v-for="widgetType in ['button', 'buttonmatrix', 'slider', 'spinbox', 'dropdown', 'checkbox', 'keyboard', 'textarea', 'roller', 'switch']"
+        :key="widgetType"
+        draggable="true"
+        @dragstart="handleDragStart($event, widgetType as any)"
+        @dragend="$event.dataTransfer!.dropEffect = 'none'"
+        class="flex flex-col items-center gap-0.5 p-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-indigo-100 dark:hover:bg-indigo-900/30 rounded-lg transition-colors cursor-move active:opacity-75"
+        :title="`Drag ${widgetType} to canvas`"
+      >
+        <Icon :icon="getWidgetInfo(widgetType)?.icon || 'widgets'" size="16" />
+        <span class="text-xs font-medium text-gray-600 dark:text-gray-400 truncate max-w-12">{{ widgetType }}</span>
+      </button>
     </div>
     
     <!-- Scrollable Widget Categories -->
-    <div class="flex-1 overflow-y-auto p-3 custom-scrollbar">
+    <div v-if="!isToolboxCollapsed" class="flex-1 overflow-y-auto p-3 custom-scrollbar">
+      <!-- Helper Text -->
+      <div class="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+        <p class="text-xs text-blue-700 dark:text-blue-300 font-medium mb-1">Drag & Drop</p>
+        <p class="text-xs text-blue-600 dark:text-blue-400">Select a widget and drag it onto the canvas to add it to your design.</p>
+      </div>
+      
       <div class="space-y-3">
         <!-- Category -->
         <div v-for="category in widgetCategories" :key="category.name" class="border border-gray-300 dark:border-gray-700 rounded-lg overflow-hidden">
