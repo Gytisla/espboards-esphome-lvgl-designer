@@ -18,7 +18,7 @@ const panStartX = ref(0)
 const panStartY = ref(0)
 const panStartOffsetX = ref(0)
 const panStartOffsetY = ref(0)
-const isPanLocked = ref(false)
+const isPanLocked = ref(true)
 
 function handleWheel(event: WheelEvent) {
   event.preventDefault()
