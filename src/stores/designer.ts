@@ -109,7 +109,6 @@ export const useDesignerStore = defineStore('designer', () => {
   const showImportModal = ref(false)
   const showShortcutsModal = ref(false)
   const showPreviewModal = ref(false)
-  const exportAllCanvases = ref(false) // Export all canvas tabs or just active one
   const theme = ref<'light' | 'dark'>('dark') // Theme preference
   
   // Drag state
@@ -623,26 +622,6 @@ export const useDesignerStore = defineStore('designer', () => {
   }
   
   function generateYAML(): string {
-    if (exportAllCanvases.value && canvasTabs.value.length > 1) {
-      // Export all canvas tabs as separate pages
-      let yamlString = 'lvgl:\n  pages:'
-      
-      canvasTabs.value.forEach((tab, index) => {
-        const pageId = tab.name.toLowerCase().replace(/[^a-z0-9_]/g, '_')
-        yamlString += `\n    - id: ${pageId || `page_${index + 1}`}\n      widgets:`
-        
-        if (tab.widgets.length === 0) {
-          yamlString += '\n        # No widgets placed yet'
-        } else {
-          tab.widgets.forEach((widget) => {
-            yamlString += '\n'
-            yamlString += generateNestedWidgetYAML(widget, '        ')
-          })
-        }
-      })
-      
-      return yamlString
-    } else {
       // Export only active canvas tab
       let yamlString = 'lvgl:\n  pages:\n    - id: main_page\n      widgets:'
       
@@ -656,7 +635,6 @@ export const useDesignerStore = defineStore('designer', () => {
       }
       
       return yamlString
-    }
   }
   
   async function copyYAML(): Promise<boolean> {
@@ -944,7 +922,6 @@ export const useDesignerStore = defineStore('designer', () => {
     showImportModal,
     showShortcutsModal,
     showPreviewModal,
-    exportAllCanvases,
     theme,
     draggedWidgetType,
     isDraggingWidget,

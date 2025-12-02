@@ -13,7 +13,7 @@ const showAboutModal = ref(false)
     <div class="flex items-center gap-4">
       <h1 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
         <Icon icon="widgets" size="24" class="text-indigo-500 dark:text-indigo-400" />
-        LVGL ESPHome Designer
+        ESPHome LVGL UI Builder
       </h1>
     </div>
 
@@ -80,7 +80,7 @@ const showAboutModal = ref(false)
           <div class="border-t border-gray-200 dark:border-gray-700"></div>
           
           <div class="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 rounded-b-lg">
-            <div class="font-semibold text-gray-900 dark:text-white mb-1">LVGL ESPHome Designer</div>
+            <div class="font-semibold text-gray-900 dark:text-white mb-1">ESPHome LVGL UI Builder</div>
             <div class="text-gray-600 dark:text-gray-400">Version 0.0.1</div>
           </div>
         </div>
@@ -108,7 +108,7 @@ const showAboutModal = ref(false)
             <div class="flex items-center gap-3">
               <Icon icon="widgets" size="32" class="text-indigo-600 dark:text-indigo-400" />
               <div>
-                <h3 class="font-bold text-gray-900 dark:text-white">LVGL ESPHome Designer</h3>
+                <h3 class="font-bold text-gray-900 dark:text-white">ESPHome LVGL UI Builder</h3>
                 <p class="text-sm text-gray-600 dark:text-gray-400">Version 0.0.1</p>
               </div>
             </div>

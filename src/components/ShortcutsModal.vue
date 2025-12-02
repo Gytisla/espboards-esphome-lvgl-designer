@@ -8,6 +8,7 @@ const shortcuts = [
   { keys: 'Escape', description: 'Deselect widget / Close modal' },
   { keys: 'Delete/Backspace', description: 'Delete selected widget' },
   { keys: '← → ↑ ↓', description: 'Move selected widget' },
+  { keys: 'Ctrl/Cmd + S', description: 'Save canvas' },
   { keys: 'Ctrl/Cmd + C', description: 'Copy selected widget' },
   { keys: 'Ctrl/Cmd + X', description: 'Cut selected widget' },
   { keys: 'Ctrl/Cmd + V', description: 'Paste widget' },
@@ -26,7 +27,7 @@ const shortcuts = [
     class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
     @click.self="store.showShortcutsModal = false"
   >
-    <div class="bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-300 dark:border-gray-700 w-full max-w-lg">
+    <div class="bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-300 dark:border-gray-700 w-full max-w-lg overflow-auto">
       <!-- Header -->
       <div class="flex items-center justify-between p-4 border-b border-gray-300 dark:border-gray-700">
         <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">

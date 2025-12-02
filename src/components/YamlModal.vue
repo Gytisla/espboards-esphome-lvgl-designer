@@ -1,13 +1,63 @@
 <script setup lang="ts">
+import { ref, computed } from 'vue'
 import { useDesignerStore } from '../stores/designer'
 import Icon from './Icon.vue'
 
 const store = useDesignerStore()
+const copied = ref(false)
 
 function copyToClipboard() {
   navigator.clipboard.writeText(store.generatedYAML)
-    .then(() => alert('YAML copied to clipboard!'))
+    .then(() => {
+      copied.value = true
+      setTimeout(() => {
+        copied.value = false
+      }, 2000)
+    })
     .catch(() => alert('Failed to copy to clipboard'))
+}
+
+
+// Simple YAML syntax highlighting
+const highlightedYAML = computed(() => {
+  const yaml = store.generatedYAML
+  
+  // Apply basic syntax highlighting
+  return yaml
+    .split('\n')
+    .map(line => {
+      // Comments
+      if (line.trim().startsWith('#')) {
+        return `<span class="text-gray-500 dark:text-gray-500">${escapeHtml(line)}</span>`
+      }
+      
+      // Keys (before colon)
+      const keyMatch = line.match(/^(\s*)([a-zA-Z_][a-zA-Z0-9_]*):/)
+      if (keyMatch) {
+        const indent = keyMatch[1]
+        const key = keyMatch[2]
+        const rest = line.substring(keyMatch[0].length)
+        return `${indent}<span class="text-blue-600 dark:text-blue-400 font-semibold">${key}</span>:<span class="text-gray-800 dark:text-gray-300">${escapeHtml(rest)}</span>`
+      }
+      
+      // List items
+      if (line.trim().startsWith('-')) {
+        return line.replace(/^(\s*)(-)(.*)$/, '$1<span class="text-purple-600 dark:text-purple-400">$2</span><span class="text-gray-800 dark:text-gray-300">$3</span>')
+      }
+      
+      // Numbers
+      return escapeHtml(line).replace(/\b(\d+)\b/g, '<span class="text-orange-600 dark:text-orange-400">$1</span>')
+    })
+    .join('\n')
+})
+
+function escapeHtml(text: string) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
 }
 </script>
 
@@ -20,25 +70,10 @@ function copyToClipboard() {
     <div class="bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-300 dark:border-gray-700 w-full max-w-4xl max-h-[90vh] flex flex-col">
       <!-- Header -->
       <div class="flex items-center justify-between p-4 border-b border-gray-300 dark:border-gray-700">
-        <div class="flex items-center gap-4">
-          <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-            <Icon icon="code-tags" size="24" class="text-indigo-600 dark:text-indigo-400" />
-            Generated YAML
-          </h2>
-          
-          <!-- Export options (only show if multiple canvas tabs exist) -->
-          <div v-if="store.canvasTabs.length > 1" class="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              id="export-all-canvases"
-              v-model="store.exportAllCanvases"
-              class="rounded border-gray-300 dark:border-gray-600 text-indigo-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-indigo-500"
-            />
-            <label for="export-all-canvases" class="text-gray-700 dark:text-gray-300 cursor-pointer">
-              Export all {{ store.canvasTabs.length }} canvases
-            </label>
-          </div>
-        </div>
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+          <Icon icon="code-tags" size="24" class="text-indigo-600 dark:text-indigo-400" />
+          Generated YAML
+        </h2>
         <button
           @click="store.showYamlModal = false"
           class="p-1 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg transition-colors"
@@ -48,25 +83,31 @@ function copyToClipboard() {
       </div>
 
       <!-- Content -->
-      <div class="flex-1 overflow-auto p-4">
-        <pre class="bg-gray-100 dark:bg-black text-gray-900 dark:text-green-400 p-4 rounded-lg text-sm overflow-x-auto font-mono border border-gray-300 dark:border-gray-800">{{ store.generatedYAML }}</pre>
-      </div>
-
-      <!-- Footer -->
-      <div class="flex items-center justify-end gap-2 p-4 border-t border-gray-300 dark:border-gray-700">
-        <button
-          @click="copyToClipboard"
-          class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
-        >
-          <Icon icon="content-copy" size="18" />
-          Copy to Clipboard
-        </button>
-        <button
-          @click="store.showYamlModal = false"
-          class="px-4 py-2 bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
-        >
-          Close
-        </button>
+      <div class="flex-1 overflow-auto rounded-b-lg">
+        <div class="bg-gray-50 dark:bg-gray-950 rounded-b-lg relative group hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors">
+          <!-- Copy button (floating top-right) -->
+          <button
+            @click="copyToClipboard"
+            :class="[
+              'sticky top-3 right-3 ml-auto p-2 rounded-lg transition-all flex items-center gap-2 text-sm font-medium shadow-lg backdrop-blur-sm',
+              copied 
+                ? 'bg-green-500 text-white' 
+                : 'bg-gray-50/90 dark:bg-gray-950/90 text-gray-700 dark:text-gray-300 group-hover:bg-gray-100/90 dark:group-hover:bg-gray-900/90'
+            ]"
+            style="z-index: 20; margin-right: 12px; margin-top: 12px;"
+          >
+            <Icon :icon="copied ? 'check' : 'content-copy'" size="18" />
+            <span v-if="copied" class="text-xs">Copied!</span>
+          </button>
+          
+          <!-- Visual highlighted YAML -->
+          <pre 
+            class="text-sm overflow-x-auto font-mono leading-relaxed relative p-4 cursor-pointer" 
+            style="margin-top: -48px;"
+            v-html="highlightedYAML"
+            @click="copyToClipboard"
+          ></pre>
+        </div>
       </div>
     </div>
   </div>
