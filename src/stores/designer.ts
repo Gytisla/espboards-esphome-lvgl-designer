@@ -659,22 +659,59 @@ export const useDesignerStore = defineStore('designer', () => {
         const widgetConfigs = data.lvgl.pages[0].widgets
         
         let maxIdNum = -1
-        widgetConfigs.forEach((widgetConfig: any) => {
+
+
+        function buildWidgetTree(widgetConfig: any): any {
           const type = Object.keys(widgetConfig)[0] as WidgetType
           const props = widgetConfig[type]
-          
-          if (props && type) {
-            addWidget(type, props.x, props.y, props)
-            
-            // Update next ID
-            const idParts = String(props.id).split('_')
-            const numPartStr = idParts[idParts.length - 1]
-            if (numPartStr) {
-              const numPart = parseInt(numPartStr)
-              if (!isNaN(numPart) && numPart > maxIdNum) {
-                maxIdNum = numPart
+          if (!props || !type) return null;
+
+          // Clone props to avoid mutation
+          const widgetProps = { ...props }
+
+          // Recursively process children for containers
+          if (type === 'tabview' && Array.isArray(widgetProps.tabs)) {
+            widgetProps.tabs = widgetProps.tabs.map((tab: any) => {
+              if (Array.isArray(tab.widgets)) {
+                tab.widgets = tab.widgets.map(buildWidgetTree)
               }
+              return tab
+            })
+          }
+          if (type === 'tileview' && Array.isArray(widgetProps.tiles)) {
+            widgetProps.tiles = widgetProps.tiles.map((tile: any) => {
+              if (Array.isArray(tile.widgets)) {
+                tile.widgets = tile.widgets.map(buildWidgetTree)
+              }
+              return tile
+            })
+          }
+          if (Array.isArray(widgetProps.widgets)) {
+            widgetProps.widgets = widgetProps.widgets.map(buildWidgetTree)
+          }
+
+          // Update next ID
+          const idParts = String(widgetProps.id).split('_')
+          const numPartStr = idParts[idParts.length - 1]
+          if (numPartStr) {
+            const numPart = parseInt(numPartStr)
+            if (!isNaN(numPart) && numPart > maxIdNum) {
+              maxIdNum = numPart
             }
+          }
+          return { type, ...widgetProps }
+        }
+
+        widgets.value = []
+        widgetConfigs.forEach((widgetConfig: any) => {
+          const tree = buildWidgetTree(widgetConfig)
+          if (tree) {
+            // Directly push the root widget to the canvas array
+            widgets.value.push({
+              ...getDefaultWidgetProps(tree.type),
+              ...tree,
+              zIndex: widgets.value.length + 1
+            })
           }
         })
         
