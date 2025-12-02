@@ -6,6 +6,13 @@ import yaml from 'js-yaml'
 
 const STORAGE_KEY = 'lvglDesignerState'
 
+export interface HistorySnapshot {
+  widgets: Widget[]
+  canvasWidth: number
+  canvasHeight: number
+  canvasResolution: string
+}
+
 export interface CanvasTab {
   id: string
   name: string
@@ -13,7 +20,7 @@ export interface CanvasTab {
   canvasWidth: number
   canvasHeight: number
   canvasResolution: string
-  historyStack?: Widget[][] // History for this specific tab
+  historyStack?: HistorySnapshot[] // History for this specific tab
   currentHistoryIndex?: number // Current position in history for this tab
 }
 
@@ -186,8 +193,13 @@ export const useDesignerStore = defineStore('designer', () => {
       activeTab.currentHistoryIndex = -1
     }
     
-    // Create a deep clone of the current widgets
-    const snapshot = JSON.parse(JSON.stringify(activeTab.widgets))
+    // Create a deep clone of the current state including widgets and canvas dimensions
+    const snapshot: HistorySnapshot = {
+      widgets: JSON.parse(JSON.stringify(activeTab.widgets)),
+      canvasWidth: activeTab.canvasWidth,
+      canvasHeight: activeTab.canvasHeight,
+      canvasResolution: activeTab.canvasResolution
+    }
     
     // If we're in the middle of history (after undo), remove everything after current index
     if (activeTab.currentHistoryIndex < activeTab.historyStack.length - 1) {
@@ -216,7 +228,12 @@ export const useDesignerStore = defineStore('designer', () => {
     
     // Restore state from history
     const snapshot = activeTab.historyStack[activeTab.currentHistoryIndex]
-    activeTab.widgets = JSON.parse(JSON.stringify(snapshot))
+    if (snapshot) {
+      activeTab.widgets = JSON.parse(JSON.stringify(snapshot.widgets))
+      activeTab.canvasWidth = snapshot.canvasWidth
+      activeTab.canvasHeight = snapshot.canvasHeight
+      activeTab.canvasResolution = snapshot.canvasResolution
+    }
     
     // Clear selection if widget no longer exists
     if (selectedWidgetId.value) {
@@ -240,7 +257,12 @@ export const useDesignerStore = defineStore('designer', () => {
     
     // Restore state from history
     const snapshot = activeTab.historyStack[activeTab.currentHistoryIndex]
-    activeTab.widgets = JSON.parse(JSON.stringify(snapshot))
+    if (snapshot) {
+      activeTab.widgets = JSON.parse(JSON.stringify(snapshot.widgets))
+      activeTab.canvasWidth = snapshot.canvasWidth
+      activeTab.canvasHeight = snapshot.canvasHeight
+      activeTab.canvasResolution = snapshot.canvasResolution
+    }
     
     // Clear selection if widget no longer exists
     if (selectedWidgetId.value) {
@@ -675,7 +697,14 @@ export const useDesignerStore = defineStore('designer', () => {
       canvasWidth: 320,
       canvasHeight: 240,
       canvasResolution: '320x240',
-      historyStack: [[]],  // Initialize with empty widgets array
+      historyStack: [
+        {
+          widgets: [],
+          canvasWidth: 320,
+          canvasHeight: 240,
+          canvasResolution: '320x240'
+        }
+      ],
       currentHistoryIndex: 0
     }
     canvasTabs.value.push(newTab)
