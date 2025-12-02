@@ -1,1 +1,5 @@
+# Serve static assets normally
+!/esphome-lvgl-designer/assets/*
+
+# Rewrite SPA routes
 /esphome-lvgl-designer/*   /index.html   200
