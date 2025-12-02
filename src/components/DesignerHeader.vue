@@ -8,12 +8,16 @@ const showAboutModal = ref(false)
 </script>
 
 <template>
-  <header class="h-14 bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-4 shrink-0 z-50">
+  <header class="min-h-14 bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-4 shrink-0 z-50 py-2">
     <!-- Left Section -->
-    <div class="flex items-center gap-3">
-      <img src="/logo.png" alt="ESPHome LVGL UI Builder" class="h-10 w-10" />
-      <h1 class="text-lg font-bold text-gray-900 dark:text-white">
-        ESPHome LVGL UI Builder
+    <div class="flex items-center gap-2 min-w-0">
+      <img src="/logo.png" alt="ESPHome LVGL UI Builder" class="h-10 w-10 shrink-0" />
+      <!-- Short title on mobile (multi-line), full title on sm+ -->
+      <h1 class="text-xs sm:text-lg font-bold text-gray-900 dark:text-white">
+        <span class="sm:hidden leading-tight">
+          ESPHome<br />LVGL<br />Designer
+        </span>
+        <span class="hidden sm:inline">ESPHome LVGL UI Builder</span>
       </h1>
     </div>
 

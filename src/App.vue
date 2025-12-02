@@ -10,6 +10,8 @@ import YamlModal from './components/YamlModal.vue'
 import ImportModal from './components/ImportModal.vue'
 import ShortcutsModal from './components/ShortcutsModal.vue'
 import PreviewModal from './components/PreviewModal.vue'
+import MobileWarningDialog from './components/MobileWarningDialog.vue'
+import Icon from './components/Icon.vue'
 
 const store = useDesignerStore()
 const route = useRoute()
@@ -64,26 +66,103 @@ onMounted(() => {
 </script>
 
 <template>
+  <!-- Mobile Warning Dialog -->
+  <MobileWarningDialog />
+
   <!-- Help Pages and Other Routes -->
   <router-view v-if="route.path.startsWith('/help') || route.path === '/about'" />
   
   <!-- Designer Interface (Default) -->
   <div v-else class="h-screen w-screen overflow-hidden flex flex-col bg-gray-50 dark:bg-gray-900">
     <!-- Fixed Header -->
+    
     <DesignerHeader />
     
     <!-- Main Content Area with Sidebars -->
     <div class="flex-1 flex overflow-hidden relative">
-      <!-- Left Toolbox Sidebar -->
-      <Toolbox />
+      <!-- Left Toolbox Sidebar - hidden on mobile -->
+      <div class="hidden lg:block">
+        <Toolbox />
+      </div>
       
       <!-- Center Canvas Area -->
       <div class="flex-1 flex flex-col overflow-hidden bg-gray-100 dark:bg-gray-800">
         <CanvasArea />
       </div>
       
-      <!-- Right Properties Sidebar -->
-      <Sidebar />
+      <!-- Right Properties Sidebar - hidden on mobile -->
+      <div class="hidden lg:block">
+        <Sidebar />
+      </div>
+      
+      <!-- Mobile Floating Action Buttons -->
+      <div class="lg:hidden fixed bottom-6 right-6 flex flex-col gap-3 z-40">
+        <!-- Properties Panel Button -->
+        <button
+          @click="store.showMobileSidebar = !store.showMobileSidebar"
+          class="w-14 h-14 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg flex items-center justify-center transition-colors"
+          title="Toggle Properties Panel"
+        >
+          <Icon icon="format-list-bulleted" size="24" />
+        </button>
+        
+        <!-- Widgets Panel Button -->
+        <button
+          @click="store.showMobileToolbox = !store.showMobileToolbox"
+          class="w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center justify-center transition-colors"
+          title="Toggle Widgets Panel"
+        >
+          <Icon icon="plus" size="24" />
+        </button>
+      </div>
+      
+      <!-- Mobile Toolbox Overlay -->
+      <div
+        v-if="store.showMobileToolbox"
+        class="lg:hidden fixed inset-0 bg-black/50 z-40"
+        @click="store.showMobileToolbox = false"
+      />
+      <div
+        v-if="store.showMobileToolbox"
+        class="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-2xl shadow-2xl z-50 max-h-[75vh] overflow-y-auto"
+      >
+        <div class="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between rounded-t-2xl">
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Widgets</h2>
+          <button
+            @click="store.showMobileToolbox = false"
+            class="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+          >
+            <Icon icon="close" size="20" />
+          </button>
+        </div>
+        <div class="p-4">
+          <Toolbox />
+        </div>
+      </div>
+      
+      <!-- Mobile Sidebar Overlay -->
+      <div
+        v-if="store.showMobileSidebar"
+        class="lg:hidden fixed inset-0 bg-black/50 z-40"
+        @click="store.showMobileSidebar = false"
+      />
+      <div
+        v-if="store.showMobileSidebar"
+        class="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-2xl shadow-2xl z-50 max-h-[75vh] overflow-y-auto"
+      >
+        <div class="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between rounded-t-2xl">
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Properties</h2>
+          <button
+            @click="store.showMobileSidebar = false"
+            class="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+          >
+            <Icon icon="close" size="20" />
+          </button>
+        </div>
+        <div class="p-4">
+          <Sidebar />
+        </div>
+      </div>
     </div>
     
     <!-- Modals -->

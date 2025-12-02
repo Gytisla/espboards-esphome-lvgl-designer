@@ -167,6 +167,8 @@ export const useDesignerStore = defineStore('designer', () => {
   const showImportModal = ref(false)
   const showShortcutsModal = ref(false)
   const showPreviewModal = ref(false)
+  const showMobileToolbox = ref(false)
+  const showMobileSidebar = ref(false)
   const theme = ref<'light' | 'dark'>('dark') // Theme preference
   
   // Drag state
@@ -1067,6 +1069,8 @@ export const useDesignerStore = defineStore('designer', () => {
     showImportModal,
     showShortcutsModal,
     showPreviewModal,
+    showMobileToolbox,
+    showMobileSidebar,
     theme,
     draggedWidgetType,
     isDraggingWidget,
