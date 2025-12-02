@@ -668,48 +668,6 @@ function getBarFillWidth(widget: Widget): number {
     </div>
   </div>
 
-  <!-- Switch Widget -->
-  <div v-else-if="widget.type === 'switch'" class="w-full h-full flex items-center justify-center p-1">
-    <div 
-      class="relative rounded-full transition-all cursor-pointer"
-      :style="{
-        width: '100%',
-        height: '100%',
-        minHeight: '24px',
-        backgroundColor: widget.checked ? (widget.indicator?.bg_color || '#4F46E5') : (widget.bg_color || '#4B5563'),
-        opacity: widget.checked 
-          ? ((widget.indicator?.bg_opa || widget.bg_opa || 100) / 100)
-          : ((widget.bg_opa || 100) / 100),
-        borderWidth: widget.border_width ? `${widget.border_width}px` : '2px',
-        borderStyle: 'solid',
-        borderColor: widget.border_color || 'transparent',
-        borderRadius: widget.radius !== undefined ? `${widget.radius}px` : '9999px'
-      }"
-    >
-      <!-- Knob -->
-      <div 
-        class="absolute top-1/2 -translate-y-1/2 rounded-full bg-white shadow-md transition-all duration-300"
-        :style="{
-          width: 'calc(50% - 4px)',
-          height: 'calc(100% - 4px)',
-          left: widget.checked ? 'calc(50% + 2px)' : '2px',
-          backgroundColor: widget.knob?.bg_color || '#FFFFFF',
-          borderRadius: widget.knob?.radius !== undefined ? `${widget.knob.radius}px` : '9999px'
-        }"
-      >
-      </div>
-      <!-- State indicator icon -->
-      <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <Icon 
-          :icon="widget.checked ? 'check' : 'close'" 
-          size="12" 
-          :class="widget.checked ? 'text-white/40' : 'text-gray-700/40'"
-          class="transition-opacity"
-        />
-      </div>
-    </div>
-  </div>
-
   <!-- Tileview Widget -->
   <div 
     v-else-if="widget.type === 'tileview'" 

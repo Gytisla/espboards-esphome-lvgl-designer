@@ -514,6 +514,37 @@ const draggedItem = ref<{
   tileIndex?: number // For tile widgets
 } | null>(null)
 
+// Collapse state maps
+const collapsedWidgets = ref<Record<string, boolean>>({})
+const collapsedTabs = ref<Record<string, Record<string, boolean>>>({}) // widgetId -> { tabId: boolean }
+const collapsedTiles = ref<Record<string, Record<string, boolean>>>({}) // widgetId -> { tileId: boolean }
+
+function toggleWidgetCollapse(widgetId: string) {
+  collapsedWidgets.value[widgetId] = !collapsedWidgets.value[widgetId]
+}
+
+function isWidgetCollapsed(widgetId: string) {
+  return !!collapsedWidgets.value[widgetId]
+}
+
+function toggleTabCollapse(widgetId: string, tabId: string) {
+  if (!collapsedTabs.value[widgetId]) collapsedTabs.value[widgetId] = {}
+  collapsedTabs.value[widgetId][tabId] = !collapsedTabs.value[widgetId][tabId]
+}
+
+function isTabCollapsed(widgetId: string, tabId: string) {
+  return !!(collapsedTabs.value[widgetId] && collapsedTabs.value[widgetId][tabId])
+}
+
+function toggleTileCollapse(widgetId: string, tileId: string) {
+  if (!collapsedTiles.value[widgetId]) collapsedTiles.value[widgetId] = {}
+  collapsedTiles.value[widgetId][tileId] = !collapsedTiles.value[widgetId][tileId]
+}
+
+function isTileCollapsed(widgetId: string, tileId: string) {
+  return !!(collapsedTiles.value[widgetId] && collapsedTiles.value[widgetId][tileId])
+}
+
 // Helper function to find a widget by ID anywhere in the hierarchy
 function findWidgetById(widgetId: string, widgets: Widget[] = store.widgets): Widget | null {
   for (const widget of widgets) {
@@ -629,6 +660,59 @@ function handleWidgetDrop(event: DragEvent, targetWidget: Widget) {
     } else {
       store.widgets.splice(targetIndex, 0, draggedWidget)
     }
+    
+    parentTileview.tiles = [...parentTileview.tiles]
+    store.saveState()
+  }
+  
+  draggedItem.value = null
+}
+
+// Handle dropping into root container
+function handleRootDrop(event: DragEvent) {
+  event.preventDefault()
+  event.stopPropagation()
+  
+  if (!draggedItem.value) return
+  
+  const draggedId = draggedItem.value.widgetId
+  
+  // Only handle tab-widget and tile-widget drops to root
+  if (draggedItem.value.type === 'tab-widget') {
+    // Moving from tab to root
+    const parentTabview = store.widgets.find(w => w.id === draggedItem.value!.parentId)
+    if (!parentTabview?.tabs) return
+    
+    const sourceTab = parentTabview.tabs[draggedItem.value.tabIndex!]
+    if (!sourceTab?.widgets) return
+    
+    const draggedIndex = sourceTab.widgets.findIndex(w => w.id === draggedId)
+    if (draggedIndex === -1) return
+    
+    const [draggedWidget] = sourceTab.widgets.splice(draggedIndex, 1)
+    if (!draggedWidget) return
+    
+    // Add to root
+    store.widgets.push(draggedWidget)
+    
+    parentTabview.tabs = [...parentTabview.tabs]
+    store.saveState()
+  } else if (draggedItem.value.type === 'tile-widget') {
+    // Moving from tile to root
+    const parentTileview = findWidgetById(draggedItem.value.parentId!)
+    if (!parentTileview?.tiles) return
+    
+    const sourceTile = parentTileview.tiles[draggedItem.value.tileIndex!]
+    if (!sourceTile?.widgets) return
+    
+    const draggedIndex = sourceTile.widgets.findIndex(w => w.id === draggedId)
+    if (draggedIndex === -1) return
+    
+    const [draggedWidget] = sourceTile.widgets.splice(draggedIndex, 1)
+    if (!draggedWidget) return
+    
+    // Add to root
+    store.widgets.push(draggedWidget)
     
     parentTileview.tiles = [...parentTileview.tiles]
     store.saveState()
@@ -1105,7 +1189,27 @@ function getWidgetIcon(widget: Widget): string {
           No widgets yet. Drag from toolbox!
         </div>
         <ul v-else class="p-2 space-y-1">
-          <li v-for="widget in store.widgets" :key="widget.id">
+          <!-- Root container header -->
+          <li class="mb-2">
+            <div
+              @dragover.prevent="handleWidgetDragOver($event)"
+              @drop="handleRootDrop($event)"
+              :class="[
+                'flex items-center gap-2 p-2 rounded-lg text-xs font-semibold transition-all',
+                'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300',
+                'border border-dashed border-gray-300 dark:border-gray-600'
+              ]"
+              title="Root container - all widgets must be children of this"
+            >
+              <Icon icon="dashboard" size="16" class="shrink-0 pointer-events-none" />
+              <span class="pointer-events-none">Root</span>
+              <span class="text-[10px] opacity-60 pointer-events-none">({{ store.widgets.length }} widgets)</span>
+            </div>
+          </li>
+
+          <!-- Root widgets (shown as children of root) -->
+          <ul class="ml-2 space-y-1 border-l-2 border-gray-300 dark:border-gray-700 pl-2">
+            <li v-for="widget in store.widgets" :key="widget.id">
             <!-- Top-level widget -->
             <div
               draggable="true"
@@ -1121,18 +1225,29 @@ function getWidgetIcon(widget: Widget): string {
                   : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'
               ]"
             >
-              <span class="flex items-center gap-2 min-w-0 flex-1 pointer-events-none">
-                <Icon :icon="getWidgetIcon(widget)" size="16" class="shrink-0" />
-                <span class="truncate">{{ widget.text || widget.type }}</span>
-                <span v-if="widget.type === 'tabview' && widget.tabs" class="text-[10px] opacity-60">
+              <span class="flex items-center gap-2 min-w-0 flex-1">
+                <!-- Collapse button for tabview/tileview -->
+                <button
+                  v-if="(widget.type === 'tabview' && widget.tabs && widget.tabs.length > 0) || (widget.type === 'tileview' && widget.tiles && widget.tiles.length > 0)"
+                  @click.stop="toggleWidgetCollapse(widget.id)"
+                  @dragstart.stop
+                  class="p-0 rounded hover:bg-gray-300 dark:hover:bg-gray-600 shrink-0 pointer-events-auto w-4 h-4 flex items-center justify-center"
+                  :title="isWidgetCollapsed(widget.id) ? 'Expand' : 'Collapse'"
+                >
+                  <Icon :icon="isWidgetCollapsed(widget.id) ? 'chevron-right' : 'expand-more'" size="16" />
+                </button>
+                <Icon :icon="getWidgetIcon(widget)" size="16" class="shrink-0 pointer-events-none" />
+                <span class="truncate pointer-events-none">{{ widget.text || widget.type }}</span>
+                <span v-if="widget.type === 'tabview' && widget.tabs" class="text-[10px] opacity-60 pointer-events-none">
                   ({{ widget.tabs.length }} tabs)
                 </span>
-                <span v-if="widget.type === 'tileview' && widget.tiles" class="text-[10px] opacity-60">
+                <span v-if="widget.type === 'tileview' && widget.tiles" class="text-[10px] opacity-60 pointer-events-none">
                   ({{ widget.tiles.length }} tiles)
                 </span>
               </span>
               <button
                 @click.stop="store.deleteWidget(widget.id)"
+                @dragstart.stop
                 class="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all shrink-0 pointer-events-auto"
                 title="Delete widget"
               >
@@ -1141,14 +1256,21 @@ function getWidgetIcon(widget: Widget): string {
             </div>
 
             <!-- Nested tabs and widgets for tabview -->
-            <ul v-if="widget.type === 'tabview' && widget.tabs && widget.tabs.length > 0" class="ml-4 mt-1 space-y-1 border-l-2 border-gray-300 dark:border-gray-700 pl-2">
+            <ul v-if="widget.type === 'tabview' && widget.tabs && widget.tabs.length > 0 && !isWidgetCollapsed(widget.id)" class="ml-4 mt-1 space-y-1 border-l-2 border-gray-300 dark:border-gray-700 pl-2">
               <li v-for="(tab, tabIndex) in widget.tabs" :key="tab.id" class="space-y-1">
                 <!-- Tab header -->
                 <div 
-                  class="flex items-center gap-2 px-2 py-1 text-[11px] text-gray-500 dark:text-gray-400 font-medium"
+                  class="flex items-center gap-1 px-1.5 py-1 text-[11px] text-gray-500 dark:text-gray-400 font-medium -ml-2"
                   @dragover="handleTabContainerDragOver($event, widget, tabIndex)"
                   @drop="handleTabContainerDrop($event, widget, tabIndex)"
                 >
+                  <button
+                    @click.stop="toggleTabCollapse(widget.id, tab.id)"
+                    class="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 shrink-0"
+                    :title="isTabCollapsed(widget.id, tab.id) ? 'Expand tab' : 'Collapse tab'"
+                  >
+                    <Icon :icon="isTabCollapsed(widget.id, tab.id) ? 'chevron-right' : 'expand-more'" size="12" />
+                  </button>
                   <Icon icon="tab" size="14" class="shrink-0" />
                   <span class="truncate">{{ tab.name }}</span>
                   <span v-if="tab.widgets && tab.widgets.length > 0" class="text-[9px] opacity-60">
@@ -1158,7 +1280,7 @@ function getWidgetIcon(widget: Widget): string {
                 
                 <!-- Widgets in this tab -->
                 <ul 
-                  v-if="tab.widgets && tab.widgets.length > 0" 
+                  v-if="tab.widgets && tab.widgets.length > 0 && !isTabCollapsed(widget.id, tab.id)" 
                   class="ml-4 space-y-0.5"
                   @dragover="handleTabContainerDragOver($event, widget, tabIndex)"
                   @drop="handleTabContainerDrop($event, widget, tabIndex)"
@@ -1200,7 +1322,7 @@ function getWidgetIcon(widget: Widget): string {
                     </div>
 
                     <!-- If this child widget is a tileview, show its tiles -->
-                    <ul v-if="childWidget.type === 'tileview' && childWidget.tiles && childWidget.tiles.length > 0" class="ml-4 mt-1 space-y-1 border-l-2 border-gray-300 dark:border-gray-700 pl-2">
+                    <ul v-if="childWidget.type === 'tileview' && childWidget.tiles && childWidget.tiles.length > 0" class="ml-4 mt-1 space-y-1 border-l-2 border-gray-300 dark:border-gray-700 pl-3">
                       <li v-for="(tile, nestedTileIndex) in childWidget.tiles" :key="tile.id" class="space-y-1">
                         <!-- Tile header -->
                         <div 
@@ -1208,14 +1330,21 @@ function getWidgetIcon(widget: Widget): string {
                           @dragover="handleTileContainerDragOver($event, childWidget, nestedTileIndex)"
                           @drop="handleTileContainerDrop($event, childWidget, nestedTileIndex)"
                           :class="[
-                            'flex items-center gap-2 px-2 py-1 text-[10px] font-medium cursor-pointer rounded transition-all group',
+                            'flex items-center gap-1 px-1.5 py-1 text-[10px] font-medium cursor-pointer rounded transition-all group -ml-2',
                             tile.row === (childWidget.current_tile_row || 0) && tile.column === (childWidget.current_tile_column || 0)
                               ? 'bg-indigo-600 text-white'
                               : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                           ]"
                           :title="`Click to view this tile [${tile.row},${tile.column}]`"
                         >
-                          <Icon icon="grid_view" size="12" class="shrink-0" />
+                          <button
+                            @click.stop="toggleTileCollapse(childWidget.id, tile.id)"
+                            class="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 shrink-0"
+                            :title="isTileCollapsed(childWidget.id, tile.id) ? 'Expand tile' : 'Collapse tile'"
+                          >
+                            <Icon :icon="isTileCollapsed(childWidget.id, tile.id) ? 'chevron-right' : 'expand-more'" size="12" />
+                          </button>
+                          <Icon icon="more-horiz" size="12" class="shrink-0" />
                           <span class="truncate">{{ tile.label || tile.id }}</span>
                           <span class="text-[8px] opacity-40">[{{ tile.row }},{{ tile.column }}]</span>
                           <span v-if="tile.widgets && tile.widgets.length > 0" class="text-[8px] opacity-60">
@@ -1232,8 +1361,8 @@ function getWidgetIcon(widget: Widget): string {
                         
                         <!-- Widgets in this tile -->
                         <ul 
-                          v-if="tile.widgets && tile.widgets.length > 0" 
-                          class="ml-3 space-y-0.5"
+                          v-if="tile.widgets && tile.widgets.length > 0 && !isTileCollapsed(childWidget.id, tile.id)" 
+                          class="ml-4 space-y-0.5"
                           @dragover="handleTileContainerDragOver($event, childWidget, nestedTileIndex)"
                           @drop="handleTileContainerDrop($event, childWidget, nestedTileIndex)"
                         >
@@ -1274,7 +1403,7 @@ function getWidgetIcon(widget: Widget): string {
             </ul>
 
             <!-- Nested tiles and widgets for tileview -->
-            <ul v-if="widget.type === 'tileview' && widget.tiles && widget.tiles.length > 0" class="ml-4 mt-1 space-y-1 border-l-2 border-gray-300 dark:border-gray-700 pl-2">
+            <ul v-if="widget.type === 'tileview' && widget.tiles && widget.tiles.length > 0 && !isWidgetCollapsed(widget.id)" class="ml-4 mt-1 space-y-1 border-l-2 border-gray-300 dark:border-gray-700 pl-3">
               <li v-for="(tile, tileIndex) in widget.tiles" :key="tile.id" class="space-y-1">
                 <!-- Tile header -->
                 <div 
@@ -1282,14 +1411,21 @@ function getWidgetIcon(widget: Widget): string {
                   @dragover="handleTileContainerDragOver($event, widget, tileIndex)"
                   @drop="handleTileContainerDrop($event, widget, tileIndex)"
                   :class="[
-                    'flex items-center gap-2 px-2 py-1 text-[11px] font-medium cursor-pointer rounded transition-all',
+                    'flex items-center gap-1 px-1.5 py-1 text-[11px] font-medium cursor-pointer rounded transition-all group -ml-2',
                     tile.row === (widget.current_tile_row || 0) && tile.column === (widget.current_tile_column || 0)
                       ? 'bg-indigo-600 text-white'
                       : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                   ]"
                   :title="`Click to view this tile [${tile.row},${tile.column}]`"
                 >
-                  <Icon icon="grid_view" size="14" class="shrink-0" />
+                  <button
+                    @click.stop="toggleTileCollapse(widget.id, tile.id)"
+                    class="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 shrink-0"
+                    :title="isTileCollapsed(widget.id, tile.id) ? 'Expand tile' : 'Collapse tile'"
+                  >
+                    <Icon :icon="isTileCollapsed(widget.id, tile.id) ? 'chevron-right' : 'expand-more'" size="12" />
+                  </button>
+                  <Icon icon="more-horiz" size="14" class="shrink-0" />
                   <span class="truncate">{{ tile.label || tile.id }}</span>
                   <span class="text-[9px] opacity-40">[{{ tile.row }},{{ tile.column }}]</span>
                   <span v-if="tile.widgets && tile.widgets.length > 0" class="text-[9px] opacity-60">
@@ -1299,7 +1435,7 @@ function getWidgetIcon(widget: Widget): string {
                 
                 <!-- Widgets in this tile -->
                 <ul 
-                  v-if="tile.widgets && tile.widgets.length > 0" 
+                  v-if="tile.widgets && tile.widgets.length > 0 && !isTileCollapsed(widget.id, tile.id)" 
                   class="ml-4 space-y-0.5"
                   @dragover="handleTileContainerDragOver($event, widget, tileIndex)"
                   @drop="handleTileContainerDrop($event, widget, tileIndex)"
@@ -1335,7 +1471,8 @@ function getWidgetIcon(widget: Widget): string {
                 </ul>
               </li>
             </ul>
-          </li>
+            </li>
+          </ul>
         </ul>
       </div>
     </div>
