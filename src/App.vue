@@ -65,6 +65,13 @@ onMounted(() => {
 })
 </script>
 
+<style scoped>
+/* Make Toolbox and Sidebar full width in mobile context */
+:deep(.lg\:hidden aside) {
+  width: 100% !important;
+}
+</style>
+
 <template>
   <!-- Mobile Warning Dialog -->
   <MobileWarningDialog />
@@ -124,9 +131,9 @@ onMounted(() => {
       />
       <div
         v-if="store.showMobileToolbox"
-        class="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-2xl shadow-2xl z-50 max-h-[75vh] overflow-y-auto"
+        class="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-2xl shadow-2xl z-50 max-h-[75vh] overflow-hidden flex flex-col"
       >
-        <div class="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between rounded-t-2xl">
+        <div class="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between rounded-t-2xl z-10">
           <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Widgets</h2>
           <button
             @click="store.showMobileToolbox = false"
@@ -135,8 +142,10 @@ onMounted(() => {
             <Icon icon="close" size="20" />
           </button>
         </div>
-        <div class="p-4">
-          <Toolbox />
+        <div class="flex-1 overflow-y-auto w-full">
+          <div class="w-full">
+            <Toolbox />
+          </div>
         </div>
       </div>
       
@@ -148,9 +157,9 @@ onMounted(() => {
       />
       <div
         v-if="store.showMobileSidebar"
-        class="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-2xl shadow-2xl z-50 max-h-[75vh] overflow-y-auto"
+        class="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-2xl shadow-2xl z-50 max-h-[75vh] overflow-hidden flex flex-col"
       >
-        <div class="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between rounded-t-2xl">
+        <div class="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between rounded-t-2xl z-10">
           <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Properties</h2>
           <button
             @click="store.showMobileSidebar = false"
@@ -159,8 +168,10 @@ onMounted(() => {
             <Icon icon="close" size="20" />
           </button>
         </div>
-        <div class="p-4">
-          <Sidebar />
+        <div class="flex-1 overflow-y-auto w-full">
+          <div class="w-full">
+            <Sidebar />
+          </div>
         </div>
       </div>
     </div>

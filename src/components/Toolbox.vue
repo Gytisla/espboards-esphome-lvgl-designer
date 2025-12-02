@@ -3,7 +3,7 @@ import { useDesignerStore } from '../stores/designer'
 import { getAllWidgets } from '../widgets'
 import type { WidgetType } from '../types/widget'
 import Icon from './Icon.vue'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 const store = useDesignerStore()
 
@@ -15,6 +15,9 @@ const isToolboxCollapsed = ref(false)
 const collapsedWidth = 70 // Width when collapsed
 const expandedWidth = 256 // Default width (w-64 = 256px)
 const toolboxWidth = ref(expandedWidth)
+
+// Detect if we're in mobile modal context (when showMobileToolbox is true)
+const isMobileModal = computed(() => store.showMobileToolbox)
 
 // Categorize widgets
 const widgetCategories = ref([
@@ -74,10 +77,11 @@ function handleDragStart(event: DragEvent, type: WidgetType) {
 <template>
   <aside
     :class="[
-      'bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col shrink-0 transition-all duration-300',
+      'bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col transition-all duration-300',
+      isMobileModal ? 'w-full shrink' : 'shrink-0 h-screen',
       store.isToolboxVisible ? 'translate-x-0' : '-translate-x-full absolute'
     ]"
-    :style="{ width: toolboxWidth + 'px' }"
+    :style="isMobileModal ? {} : { width: toolboxWidth + 'px' }"
   >
     <!-- Toolbox Header -->
     <div class="px-3 py-5 border-b-2 border-gray-300 dark:border-gray-600 flex items-center" :class="isToolboxCollapsed ? 'justify-center' : 'justify-between'">
@@ -94,7 +98,7 @@ function handleDragStart(event: DragEvent, type: WidgetType) {
     </div>
     
     <!-- Collapsed View - Quick Widget Icons (draggable) -->
-    <div v-if="isToolboxCollapsed" class="flex-1 flex flex-col items-center gap-2 py-4 px-1 overflow-y-auto custom-scrollbar">
+    <div v-if="isToolboxCollapsed" class="flex-1 flex flex-col items-center gap-2 py-4 px-1 overflow-y-auto custom-scrollbar scroll-container">
       <!-- Containers -->
       <button
         v-for="widgetType in ['tabview', 'tileview']"
@@ -145,7 +149,7 @@ function handleDragStart(event: DragEvent, type: WidgetType) {
     </div>
     
     <!-- Scrollable Widget Categories -->
-    <div v-if="!isToolboxCollapsed" class="flex-1 overflow-y-auto p-3 custom-scrollbar">
+    <div v-if="!isToolboxCollapsed" class="flex-1 overflow-y-auto p-3 custom-scrollbar scroll-container">
       <!-- Helper Text -->
       <div class="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
         <p class="text-xs text-blue-700 dark:text-blue-300 font-medium mb-1">Drag & Drop</p>
@@ -208,22 +212,3 @@ function handleDragStart(event: DragEvent, type: WidgetType) {
     </div>
   </aside>
 </template>
-
-<style scoped>
-.custom-scrollbar::-webkit-scrollbar {
-  width: 8px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: #1f2937;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #4b5563;
-  border-radius: 4px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #6b7280;
-}
-</style>
