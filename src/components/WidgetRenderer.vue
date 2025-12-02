@@ -10,6 +10,7 @@ interface Props {
   widget: Widget
   isNested?: boolean
   hoveredDropTargetId?: string | null
+  isPreview?: boolean
 }
 
 const props = defineProps<Props>()
@@ -757,11 +758,12 @@ function getBarFillWidth(widget: Widget): number {
               v-for="childWidget in tile.widgets"
               :key="childWidget.id"
               draggable="true"
-              @click="handleNestedWidgetClick($event, childWidget)"
-              @dragstart="handleNestedWidgetDragStart($event, childWidget, widget)"
+              @click="!props.isPreview ? handleNestedWidgetClick($event, childWidget) : null"
+              @dragstart="!props.isPreview ? handleNestedWidgetDragStart($event, childWidget, widget) : null"
               :class="[
                 'absolute border rounded-md cursor-move select-none min-w-5 min-h-5 shadow-md hover:shadow-lg transition-all',
-                store.selectedWidgetId === childWidget.id
+                props.isPreview && 'pointer-events-none',
+                store.selectedWidgetId === childWidget.id && !props.isPreview
                   ? 'border-2 border-indigo-500 shadow-[0_0_0_3px_rgba(99,102,241,0.3)] ring-2 ring-indigo-400/50'
                   : 'border-gray-500 hover:border-gray-400'
               ]"
@@ -775,11 +777,11 @@ function getBarFillWidth(widget: Widget): number {
               :data-widget-id="childWidget.id"
               :data-widget-type="childWidget.type"
               :title="`${childWidget.type} (nested in tile ${tile.id})`">
-              <WidgetRenderer :widget="childWidget" :isNested="true" :hoveredDropTargetId="props.hoveredDropTargetId" />
+              <WidgetRenderer :widget="childWidget" :isNested="true" :hoveredDropTargetId="props.hoveredDropTargetId" :isPreview="props.isPreview" />
               
               <!-- Resize handle for nested widgets -->
               <div
-                v-if="store.selectedWidgetId === childWidget.id"
+                v-if="store.selectedWidgetId === childWidget.id && !props.isPreview"
                 @mousedown="handleNestedResizeStart($event, childWidget)"
                 class="absolute bottom-0 right-0 w-3 h-3 bg-indigo-500 border border-white cursor-se-resize hover:bg-indigo-400 transition-colors"
                 style="transform: translate(50%, 50%)"
@@ -1000,11 +1002,12 @@ function getBarFillWidth(widget: Widget): number {
           v-for="childWidget in (widget.tabs[widget.selectedTabIndex || 0]?.widgets || [])"
           :key="childWidget.id"
           draggable="true"
-          @click="handleNestedWidgetClick($event, childWidget)"
-          @dragstart="handleNestedWidgetDragStart($event, childWidget, widget)"
+          @click="!props.isPreview ? handleNestedWidgetClick($event, childWidget) : null"
+          @dragstart="!props.isPreview ? handleNestedWidgetDragStart($event, childWidget, widget) : null"
           :class="[
             'absolute border rounded-md cursor-move select-none min-w-5 min-h-5 shadow-md hover:shadow-lg transition-all',
-            store.selectedWidgetId === childWidget.id
+            props.isPreview && 'pointer-events-none',
+            store.selectedWidgetId === childWidget.id && !props.isPreview
               ? 'border-2 border-indigo-500 shadow-[0_0_0_3px_rgba(99,102,241,0.3)] ring-2 ring-indigo-400/50'
               : 'border-gray-500 hover:border-gray-400'
           ]"
@@ -1018,11 +1021,9 @@ function getBarFillWidth(widget: Widget): number {
           :data-widget-id="childWidget.id"
           :data-widget-type="childWidget.type"
           :title="`${childWidget.type} (nested in tab)`">
-          <WidgetRenderer :widget="childWidget" :isNested="true" :hoveredDropTargetId="props.hoveredDropTargetId" />
-          
-          <!-- Resize handle for nested widgets -->
+          <WidgetRenderer :widget="childWidget" :isNested="true" :hoveredDropTargetId="props.hoveredDropTargetId" :isPreview="props.isPreview" />
           <div
-            v-if="store.selectedWidgetId === childWidget.id"
+            v-if="store.selectedWidgetId === childWidget.id && !props.isPreview"
             @mousedown="handleNestedResizeStart($event, childWidget)"
             class="absolute bottom-0 right-0 w-3 h-3 bg-indigo-500 border border-white cursor-se-resize hover:bg-indigo-400 transition-colors"
             style="transform: translate(50%, 50%)"

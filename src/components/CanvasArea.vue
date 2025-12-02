@@ -7,6 +7,87 @@ import Icon from './Icon.vue'
 
 const store = useDesignerStore()
 
+// Pan and Zoom
+const panOffsetX = ref(0)
+const panOffsetY = ref(0)
+const zoomLevel = ref(1)
+const minZoom = 0.25
+const maxZoom = 3
+const isPanning = ref(false)
+const panStartX = ref(0)
+const panStartY = ref(0)
+const panStartOffsetX = ref(0)
+const panStartOffsetY = ref(0)
+const isPanLocked = ref(false)
+
+function handleWheel(event: WheelEvent) {
+  event.preventDefault()
+  
+  const canvas = document.getElementById('canvas-viewport')
+  if (!canvas) return
+  
+  const rect = canvas.getBoundingClientRect()
+  const mouseX = event.clientX - rect.left
+  const mouseY = event.clientY - rect.top
+  
+  if (event.ctrlKey) {
+    // Zoom if Ctrl is held
+    const zoomDelta = event.deltaY > 0 ? 0.9 : 1.1
+    const newZoom = Math.max(minZoom, Math.min(maxZoom, zoomLevel.value * zoomDelta))
+    
+    // Adjust pan to zoom towards mouse position
+    const zoomChange = newZoom - zoomLevel.value
+    panOffsetX.value -= (mouseX - rect.width / 2) * (zoomChange / zoomLevel.value)
+    panOffsetY.value -= (mouseY - rect.height / 2) * (zoomChange / zoomLevel.value)
+    
+    zoomLevel.value = newZoom
+  } else if (!isPanLocked.value) {
+    // Pan if Ctrl is not held and pan is not locked (scroll gesture on mousepad)
+    panOffsetX.value -= event.deltaX
+    panOffsetY.value -= event.deltaY
+  }
+}
+
+function handleMouseDown(event: MouseEvent) {
+  // Middle mouse button or Ctrl+left mouse button for panning (if not locked)
+  if (!isPanLocked.value && (event.button === 1 || (event.button === 0 && event.ctrlKey))) {
+    event.preventDefault()
+    isPanning.value = true
+    panStartX.value = event.clientX
+    panStartY.value = event.clientY
+    panStartOffsetX.value = panOffsetX.value
+    panStartOffsetY.value = panOffsetY.value
+  }
+}
+
+function handleMouseMove(event: MouseEvent) {
+  if (!isPanning.value) return
+  
+  const deltaX = event.clientX - panStartX.value
+  const deltaY = event.clientY - panStartY.value
+  
+  panOffsetX.value = panStartOffsetX.value + deltaX
+  panOffsetY.value = panStartOffsetY.value + deltaY
+}
+
+function handleMouseUp() {
+  isPanning.value = false
+}
+
+function handleZoomIn() {
+  zoomLevel.value = Math.min(maxZoom, zoomLevel.value * 1.2)
+}
+
+function handleZoomOut() {
+  zoomLevel.value = Math.max(minZoom, zoomLevel.value / 1.2)
+}
+
+function resetView() {
+  panOffsetX.value = 0
+  panOffsetY.value = 0
+  zoomLevel.value = 1
+}
+
 // Hover tracking for drop targets
 const hoveredDropTargetId = ref<string | null>(null)
 
@@ -129,14 +210,46 @@ function handleKeyDown(event: KeyboardEvent) {
     event.preventDefault()
     store.deleteWidget(store.selectedWidgetId)
   }
+  
+  // Ctrl/Cmd + Plus - Zoom In
+  if (ctrlOrCmd && (event.key === '+' || event.key === '=')) {
+    event.preventDefault()
+    handleZoomIn()
+  }
+  
+  // Ctrl/Cmd + Minus - Zoom Out
+  if (ctrlOrCmd && event.key === '-') {
+    event.preventDefault()
+    handleZoomOut()
+  }
+  
+  // Ctrl/Cmd + 0 - Reset Zoom
+  if (ctrlOrCmd && event.key === '0') {
+    event.preventDefault()
+    resetView()
+  }
 }
 
 onMounted(() => {
   document.addEventListener('keydown', handleKeyDown)
+  document.addEventListener('mousedown', handleMouseDown)
+  document.addEventListener('mousemove', handleMouseMove)
+  document.addEventListener('mouseup', handleMouseUp)
+  const canvasViewport = document.getElementById('canvas-viewport')
+  if (canvasViewport) {
+    canvasViewport.addEventListener('wheel', handleWheel, { passive: false })
+  }
 })
 
 onUnmounted(() => {
   document.removeEventListener('keydown', handleKeyDown)
+  document.removeEventListener('mousedown', handleMouseDown)
+  document.removeEventListener('mousemove', handleMouseMove)
+  document.removeEventListener('mouseup', handleMouseUp)
+  const canvasViewport = document.getElementById('canvas-viewport')
+  if (canvasViewport) {
+    canvasViewport.removeEventListener('wheel', handleWheel)
+  }
 })
 
 const resolutions = [
@@ -769,37 +882,128 @@ function getWidgetStyle(widget: Widget) {
             </option>
           </select>
         </div>
-        
-        <!-- Scale Controls -->
-        <div class="flex items-center gap-2">
-          <span class="text-xs font-medium text-gray-600 dark:text-gray-400">Zoom:</span>
-          <div class="flex gap-1">
-            <button
-              v-for="scale in scales"
-              :key="scale"
-              @click="store.setScale(scale)"
-              :class="[
-                'px-2 py-1 text-xs rounded border transition-colors',
-                store.currentScale === scale
-                  ? 'bg-indigo-600 text-white border-indigo-500'
-                  : 'bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:hover:bg-gray-700'
-              ]"
-            >
-              {{ scale }}×
-            </button>
-          </div>
-        </div>
       </div>
     </div>
 
     <!-- Canvas Viewport -->
-    <div class="flex-1 overflow-auto flex items-center justify-center p-4 custom-scrollbar">
+    <div 
+      id="canvas-viewport"
+      class="flex-1 overflow-hidden flex items-center justify-center p-4 custom-scrollbar relative"
+      :style="{
+        cursor: isPanning ? 'grabbing' : 'default'
+      }"
+      @mousedown="handleMouseDown"
+      @mousemove="handleMouseMove"
+      @mouseup="handleMouseUp"
+      @mouseleave="handleMouseUp"
+      @wheel="handleWheel"
+    >
+      <!-- Scale Indicator -->
+      <div class="absolute top-4 right-4 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 rounded-lg text-sm font-medium shadow-lg border border-gray-200 dark:border-gray-700 z-40 pointer-events-none">
+        <span>{{ (zoomLevel * 100).toFixed(0) }}%</span>
+      </div>
+      
+      <!-- Pan Lock Button -->
+      <button
+        @click="isPanLocked = !isPanLocked"
+        :class="[
+          'absolute top-4 left-4 p-2 rounded-lg shadow-lg border z-40 transition-colors',
+          isPanLocked
+            ? 'bg-indigo-600 dark:bg-indigo-600 border-indigo-500 dark:border-indigo-500 text-white hover:bg-indigo-700 dark:hover:bg-indigo-700'
+            : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-white'
+        ]"
+        :title="isPanLocked ? 'Pan is locked (click to unlock)' : 'Pan is unlocked (click to lock)'"
+      >
+        <Icon :icon="isPanLocked ? 'lock' : 'lock-open-variant'" size="20" />
+      </button>
+      
+      <!-- Zoom Controls -->
+      <div class="absolute bottom-4 right-4 flex gap-1 z-40 bg-white dark:bg-gray-900 rounded-lg p-1 shadow-lg border border-gray-200 dark:border-gray-700">
+        <button
+          @click="handleZoomOut"
+          :disabled="zoomLevel <= minZoom"
+          class="px-2 py-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:bg-gray-200 dark:disabled:bg-gray-700 disabled:cursor-not-allowed text-gray-900 dark:text-white text-xs rounded transition-colors"
+          title="Zoom out (Ctrl -)"
+        >
+          −
+        </button>
+        
+        <button
+          @click="zoomLevel = 0.5"
+          :class="[
+            'px-2 py-1 text-xs rounded transition-colors',
+            Math.abs(zoomLevel - 0.5) < 0.01
+              ? 'bg-indigo-600 text-white'
+              : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+          ]"
+          title="50% zoom"
+        >
+          0.5×
+        </button>
+        
+        <button
+          @click="zoomLevel = 1"
+          :class="[
+            'px-2 py-1 text-xs rounded transition-colors',
+            Math.abs(zoomLevel - 1) < 0.01
+              ? 'bg-indigo-600 text-white'
+              : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+          ]"
+          title="100% zoom"
+        >
+          1×
+        </button>
+        
+        <button
+          @click="zoomLevel = 2"
+          :class="[
+            'px-2 py-1 text-xs rounded transition-colors',
+            Math.abs(zoomLevel - 2) < 0.01
+              ? 'bg-indigo-600 text-white'
+              : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+          ]"
+          title="200% zoom"
+        >
+          2×
+        </button>
+        
+        <button
+          @click="zoomLevel = 3"
+          :class="[
+            'px-2 py-1 text-xs rounded transition-colors',
+            Math.abs(zoomLevel - 3) < 0.01
+              ? 'bg-indigo-600 text-white'
+              : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+          ]"
+          title="300% zoom"
+        >
+          3×
+        </button>
+        
+        <button
+          @click="handleZoomIn"
+          :disabled="zoomLevel >= maxZoom"
+          class="px-2 py-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:bg-gray-200 dark:disabled:bg-gray-700 disabled:cursor-not-allowed text-gray-900 dark:text-white text-xs rounded transition-colors"
+          title="Zoom in (Ctrl +)"
+        >
+          +
+        </button>
+        
+        <button
+          @click="resetView"
+          class="px-2 py-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white text-xs rounded transition-colors"
+          title="Reset zoom and pan"
+        >
+          Reset
+        </button>
+      </div>
+      
       <div
         id="canvas"
         :style="{
           width: store.canvasWidth + 'px',
           height: store.canvasHeight + 'px',
-          transform: `scale(${store.currentScale})`,
+          transform: `translate(${panOffsetX}px, ${panOffsetY}px) scale(${store.currentScale * zoomLevel})`,
           transformOrigin: 'center center',
           backgroundImage: 'linear-gradient(to right, rgba(99, 102, 241, 0.1) 1px, transparent 1px), linear-gradient(to bottom, rgba(99, 102, 241, 0.1) 1px, transparent 1px)',
           backgroundSize: '10px 10px'
@@ -808,7 +1012,7 @@ function getWidgetStyle(widget: Widget) {
         @dragleave="handleCanvasDragLeave"
         @drop="handleCanvasDrop"
         @click="$event.target === $event.currentTarget && store.selectWidget(null)"
-        class="relative bg-gray-900 border-2 border-gray-700 shadow-2xl transition-all duration-200"
+        class="relative bg-gray-900 border-2 border-gray-700 shadow-2xl"
       >
         <!-- Widgets -->
         <div
@@ -893,26 +1097,17 @@ function getWidgetStyle(widget: Widget) {
 </template>
 
 <style scoped>
-.custom-scrollbar::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
+/* Hide scrollbars while keeping scroll functionality */
+.custom-scrollbar {
+  overflow: hidden !important;
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: #1f2937;
+::-webkit-scrollbar {
+  display: none;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #4b5563;
-  border-radius: 6px;
-  border: 2px solid #1f2937;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #6b7280;
-}
-
-.custom-scrollbar::-webkit-scrollbar-corner {
-  background: #1f2937;
+/* For Firefox */
+* {
+  scrollbar-width: none;
 }
 </style>

@@ -30,7 +30,7 @@ const props = defineProps<Props>()
       <div 
         v-for="(tab, index) in (widget.tabs || [{id: '1', name: 'Tab 1', widgets: []}])" 
         :key="tab.id"
-        @click="onTabClick(index)"
+        @click.stop="onTabClick(index)"
         class="px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer border-gray-600"
         :class="{
           'bg-gray-800 text-indigo-400': index === (widget.selectedTabIndex || 0),
@@ -42,13 +42,13 @@ const props = defineProps<Props>()
       </div>
     </div>
     
-    <!-- Tab content area with nested widgets -->
-    <div class="flex-1 relative overflow-hidden">
+    <!-- Tab content area with nested widgets - NO EDITING ALLOWED -->
+    <div class="flex-1 relative overflow-hidden" @click.stop>
       <template v-if="widget.tabs && widget.tabs.length > 0 && widget.tabs[widget.selectedTabIndex || 0]">
         <div
           v-for="childWidget in (widget.tabs[widget.selectedTabIndex || 0]?.widgets || [])"
           :key="childWidget.id"
-          class="absolute"
+          class="absolute pointer-events-none"
           :style="{
             left: childWidget.x + 'px',
             top: childWidget.y + 'px',
@@ -56,7 +56,7 @@ const props = defineProps<Props>()
             height: childWidget.height !== undefined ? childWidget.height + 'px' : 'auto',
             zIndex: childWidget.zIndex
           }">
-          <WidgetRenderer :widget="childWidget" />
+          <WidgetRenderer :widget="childWidget" :isPreview="true" />
         </div>
       </template>
       <div v-else class="flex items-center justify-center h-full text-xs text-gray-500">
