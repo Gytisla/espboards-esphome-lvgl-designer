@@ -41,8 +41,7 @@
             <li>Check if you're using Private/Incognito mode (storage is cleared on close)</li>
             <li>Refresh the page to reload from local storage</li>
             <li>Check if you imported a different project (overwriting the current design)</li>
-            <li>Look in your Downloads folder for any exported YAML backups</li>
-            <li>If lost, try to recreate from memory or contact support</li>
+            <li>If lost, try to recreate from memory</li>
           </ul>
           <p class="text-xs text-orange-600 dark:text-orange-400 mt-3 font-semibold">
             💡 Always export your designs regularly as backup!
@@ -61,6 +60,7 @@
             <li>Check if the widget is positioned outside canvas bounds</li>
             <li>Verify the widget's width and height are greater than 0</li>
             <li>Check the Properties panel to see the widget's position</li>
+            <li>The widget might be hidden behind another item - check the z-index (stacking order)</li>
             <li>Try clicking on the widget in the element tree (left sidebar)</li>
             <li>Refresh the page to redraw the canvas</li>
           </ul>
@@ -139,7 +139,7 @@
           <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">If widget selection isn't working:</p>
           <ul class="text-sm text-gray-600 dark:text-gray-300 space-y-1 list-disc list-inside">
             <li>Try clicking directly on the widget on the canvas</li>
-            <li>Use the element tree in the left sidebar to click the widget</li>
+            <li>Use the element tree in the right sidebar to click the widget</li>
             <li>Check if another widget is covering it</li>
             <li>Try zooming the canvas to make the widget larger</li>
           </ul>

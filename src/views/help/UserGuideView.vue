@@ -158,11 +158,16 @@
         <div class="mt-4 p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg">
           <p class="text-xs text-gray-700 dark:text-gray-200 mb-2"><strong>📚 Widget Documentation:</strong></p>
           <p class="text-xs text-gray-600 dark:text-gray-300 mb-2">
-            For detailed information about each widget and its properties, refer to the official ESPHome LVGL documentation:
+            For detailed information about each widget and its properties:
           </p>
-          <a href="https://esphome.io/components/lvgl/widgets/" target="_blank" rel="noopener noreferrer" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-semibold">
-            ESPHome LVGL Widgets Reference →
-          </a>
+          <div class="flex flex-col gap-2">
+            <RouterLink to="/help/widget-support" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-semibold">
+              📋 Widget Support Page →
+            </RouterLink>
+            <a href="https://esphome.io/components/lvgl/widgets/" target="_blank" rel="noopener noreferrer" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-semibold">
+              🔗 ESPHome LVGL Widgets Reference →
+            </a>
+          </div>
         </div>
       </div>
     </div>
@@ -173,7 +178,7 @@
         <div>
           <h4 class="font-semibold text-gray-900 dark:text-white mb-2">Auto-Save</h4>
           <p class="text-sm text-gray-600 dark:text-gray-300">
-            Your designs are automatically saved to your browser's local storage whenever you make changes.
+            Your designs are automatically saved to your browser's local storage whenever you make changes. If you want to make sure your changes are saved, click <kbd class="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded text-xs font-semibold">Ctrl</kbd> / <kbd class="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded text-xs font-semibold">Cmd</kbd> + <kbd class="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded text-xs font-semibold">S</kbd> to save!
           </p>
         </div>
         <div>
@@ -194,5 +199,5 @@
 </template>
 
 <script setup lang="ts">
-// No script needed
+import { RouterLink } from 'vue-router'
 </script>
