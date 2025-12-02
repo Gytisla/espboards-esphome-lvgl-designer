@@ -1,8 +1,1 @@
-# Serve index.html for the subdirectory root
-/esphome-lvgl-designer            /esphome-lvgl-designer/index.html       200
-
-# Serve assets normally
-/esphome-lvgl-designer/assets/*    /esphome-lvgl-designer/assets/:splat    200
-
-# SPA fallback - serve index.html for all routes under the subdirectory
-/esphome-lvgl-designer/*           /esphome-lvgl-designer/index.html       200
+/esphome-lvgl-designer/*  /esphome-lvgl-designer/index.html  200
