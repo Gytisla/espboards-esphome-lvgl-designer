@@ -8,6 +8,9 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vite.dev/config/
 export default defineConfig({
   base: '/esphome-lvgl-designer/',
+  build: {
+    outDir: 'dist/esphome-lvgl-designer',
+  },
   plugins: [
     vue(),
     tailwindcss(),
