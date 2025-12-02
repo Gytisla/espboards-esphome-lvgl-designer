@@ -57,57 +57,57 @@ export const switchWidget: WidgetPlugin = {
     },
   ],
   
-  generateYAML: (widget: Widget) => {
+  generateYAML: (widget: Widget, indent: string = ''): string => {
     const lines: string[] = []
     
     // State - checked
     if (widget.checked) {
-      lines.push('  state:')
-      lines.push('    checked: true')
+      lines.push(`${indent}state:`)
+      lines.push(`${indent}  checked: true`)
     }
     
     // Background styling
     if (widget.bg_color) {
-      lines.push(`  bg_color: ${convertHexColor(widget.bg_color)}`)
+      lines.push(`${indent}bg_color: ${convertHexColor(widget.bg_color)}`)
     }
     
     if (widget.bg_opa !== undefined && widget.bg_opa !== 100) {
-      lines.push(`  bg_opa: ${widget.bg_opa}%`)
+      lines.push(`${indent}bg_opa: ${widget.bg_opa}%`)
     }
     
     if (widget.border_width) {
-      lines.push(`  border_width: ${widget.border_width}`)
+      lines.push(`${indent}border_width: ${widget.border_width}`)
     }
     
     if (widget.border_color) {
-      lines.push(`  border_color: ${convertHexColor(widget.border_color)}`)
+      lines.push(`${indent}border_color: ${convertHexColor(widget.border_color)}`)
     }
     
     if (widget.radius !== undefined) {
-      lines.push(`  radius: ${widget.radius}`)
+      lines.push(`${indent}radius: ${widget.radius}`)
     }
     
     // Indicator styling (when checked)
     const hasIndicatorStyles = widget.indicator?.bg_color || widget.indicator?.bg_opa !== undefined
     if (hasIndicatorStyles) {
-      lines.push('  indicator:')
+      lines.push(`${indent}indicator:`)
       if (widget.indicator?.bg_color) {
-        lines.push(`    bg_color: ${convertHexColor(widget.indicator.bg_color)}`)
+        lines.push(`${indent}  bg_color: ${convertHexColor(widget.indicator.bg_color)}`)
       }
       if (widget.indicator?.bg_opa !== undefined) {
-        lines.push(`    bg_opa: ${widget.indicator.bg_opa}%`)
+        lines.push(`${indent}  bg_opa: ${widget.indicator.bg_opa}%`)
       }
     }
     
     // Knob styling
     const hasKnobStyles = widget.knob?.bg_color || widget.knob?.radius !== undefined
     if (hasKnobStyles) {
-      lines.push('  knob:')
+      lines.push(`${indent}knob:`)
       if (widget.knob?.bg_color) {
-        lines.push(`    bg_color: ${convertHexColor(widget.knob.bg_color)}`)
+        lines.push(`${indent}  bg_color: ${convertHexColor(widget.knob.bg_color)}`)
       }
       if (widget.knob?.radius !== undefined) {
-        lines.push(`    radius: ${widget.knob.radius}`)
+        lines.push(`${indent}  radius: ${widget.knob.radius}`)
       }
     }
     

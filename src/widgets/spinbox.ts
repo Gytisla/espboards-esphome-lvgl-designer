@@ -106,66 +106,66 @@ export const spinboxWidget: WidgetPlugin = {
     },
   ],
   
-  generateYAML: (widget: Widget) => {
+  generateYAML: (widget: Widget, indent: string = ''): string => {
     const lines: string[] = []
     
     // Value
     if (widget.value !== undefined && widget.value !== 0) {
-      lines.push(`  value: ${widget.value}`)
+      lines.push(`${indent}value: ${widget.value}`)
     }
     
     // Range
     if (widget.range_from !== undefined && widget.range_from !== 0) {
-      lines.push(`  range_from: ${widget.range_from}`)
+      lines.push(`${indent}range_from: ${widget.range_from}`)
     }
     
     if (widget.range_to !== undefined && widget.range_to !== 100) {
-      lines.push(`  range_to: ${widget.range_to}`)
+      lines.push(`${indent}range_to: ${widget.range_to}`)
     }
     
     // Digits configuration
     if (widget.digits && widget.digits !== 4) {
-      lines.push(`  digits: ${widget.digits}`)
+      lines.push(`${indent}digits: ${widget.digits}`)
     }
     
     if (widget.decimal_places !== undefined && widget.decimal_places !== 0) {
-      lines.push(`  decimal_places: ${widget.decimal_places}`)
+      lines.push(`${indent}decimal_places: ${widget.decimal_places}`)
     }
     
     // Selected digit
     if (widget.selected_digit !== undefined && widget.selected_digit !== 0) {
-      lines.push(`  selected_digit: ${widget.selected_digit}`)
+      lines.push(`${indent}selected_digit: ${widget.selected_digit}`)
     }
     
     // Rollover
     if (widget.rollover) {
-      lines.push(`  rollover: true`)
+      lines.push(`${indent}rollover: true`)
     }
     
     // Animation time
     if (widget.anim_time) {
-      lines.push(`  anim_time: ${widget.anim_time}ms`)
+      lines.push(`${indent}anim_time: ${widget.anim_time}ms`)
     }
     
     // Styling
     if (widget.text_color) {
-      lines.push(`  text_color: ${widget.text_color}`)
+      lines.push(`${indent}text_color: ${widget.text_color}`)
     }
     
     if (widget.bg_color) {
-      lines.push(`  bg_color: ${widget.bg_color}`)
+      lines.push(`${indent}bg_color: ${widget.bg_color}`)
     }
     
     if (widget.border_width) {
-      lines.push(`  border_width: ${widget.border_width}`)
+      lines.push(`${indent}border_width: ${widget.border_width}`)
     }
     
     if (widget.border_color) {
-      lines.push(`  border_color: ${widget.border_color}`)
+      lines.push(`${indent}border_color: ${widget.border_color}`)
     }
     
     if (widget.radius !== undefined) {
-      lines.push(`  radius: ${widget.radius}`)
+      lines.push(`${indent}radius: ${widget.radius}`)
     }
     
     return lines.join('\n')

@@ -88,61 +88,61 @@ export const rollerWidget: WidgetPlugin = {
     },
   ],
   
-  generateYAML: (widget: Widget) => {
+  generateYAML: (widget: Widget, indent: string = ''): string => {
     const lines: string[] = []
     
     // Options (required)
     if (widget.options && Array.isArray(widget.options) && widget.options.length > 0) {
-      lines.push('  options:')
+      lines.push(`${indent}options:`)
       widget.options.forEach((option: string) => {
-        lines.push(`    - ${option}`)
+        lines.push(`${indent}  - ${option}`)
       })
     }
     
     // Selected index
     if (widget.selected_index !== undefined && widget.selected_index !== 0) {
-      lines.push(`  selected_index: ${widget.selected_index}`)
+      lines.push(`${indent}selected_index: ${widget.selected_index}`)
     }
     
     // Mode (only if not NORMAL)
     if (widget.mode && widget.mode !== 'NORMAL') {
-      lines.push(`  mode: ${widget.mode}`)
+      lines.push(`${indent}mode: ${widget.mode}`)
     }
     
     // Visible row count (only if not default)
     if (widget.visible_row_count && widget.visible_row_count !== 3) {
-      lines.push(`  visible_row_count: ${widget.visible_row_count}`)
+      lines.push(`${indent}visible_row_count: ${widget.visible_row_count}`)
     }
     
     // Animation time
     if (widget.anim_time) {
-      lines.push(`  anim_time: ${widget.anim_time}ms`)
+      lines.push(`${indent}anim_time: ${widget.anim_time}ms`)
     }
     
     // Text styling
     if (widget.text_color) {
-      lines.push(`  text_color: ${widget.text_color}`)
+      lines.push(`${indent}text_color: ${widget.text_color}`)
     }
     
     if (widget.text_line_space) {
-      lines.push(`  text_line_space: ${widget.text_line_space}`)
+      lines.push(`${indent}text_line_space: ${widget.text_line_space}`)
     }
     
     // Background styling
     if (widget.bg_color) {
-      lines.push(`  bg_color: ${widget.bg_color}`)
+      lines.push(`${indent}bg_color: ${widget.bg_color}`)
     }
     
     if (widget.border_width) {
-      lines.push(`  border_width: ${widget.border_width}`)
+      lines.push(`${indent}border_width: ${widget.border_width}`)
     }
     
     if (widget.border_color) {
-      lines.push(`  border_color: ${widget.border_color}`)
+      lines.push(`${indent}border_color: ${widget.border_color}`)
     }
     
     if (widget.radius !== undefined) {
-      lines.push(`  radius: ${widget.radius}`)
+      lines.push(`${indent}radius: ${widget.radius}`)
     }
     
     return lines.join('\n')

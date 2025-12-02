@@ -102,67 +102,67 @@ export const textareaWidget: WidgetPlugin = {
     },
   ],
   
-  generateYAML: (widget: Widget) => {
+  generateYAML: (widget: Widget, indent: string = ''): string => {
     const lines: string[] = []
     
     // Text content
     if (widget.text) {
-      lines.push(`  text: "${widget.text}"`)
+      lines.push(`${indent}text: "${widget.text}"`)
     }
     
     // Placeholder text
     if (widget.placeholder_text) {
-      lines.push(`  placeholder_text: "${widget.placeholder_text}"`)
+      lines.push(`${indent}placeholder_text: "${widget.placeholder_text}"`)
     }
     
     // One line mode
     if (widget.one_line) {
-      lines.push('  one_line: true')
+      lines.push(`${indent}one_line: true`)
     }
     
     // Password mode
     if (widget.password_mode) {
-      lines.push('  password_mode: true')
+      lines.push(`${indent}password_mode: true`)
     }
     
     // Max length
     if (widget.max_length) {
-      lines.push(`  max_length: ${widget.max_length}`)
+      lines.push(`${indent}max_length: ${widget.max_length}`)
     }
     
     // Accepted characters
     if (widget.accepted_chars) {
-      lines.push(`  accepted_chars: "${widget.accepted_chars}"`)
+      lines.push(`${indent}accepted_chars: "${widget.accepted_chars}"`)
     }
     
     // Text styling
     if (widget.text_color) {
-      lines.push(`  text_color: ${convertHexColor(widget.text_color)}`)
+      lines.push(`${indent}text_color: ${convertHexColor(widget.text_color)}`)
     }
     
     // Background styling
     if (widget.bg_color) {
-      lines.push(`  bg_color: ${convertHexColor(widget.bg_color)}`)
+      lines.push(`${indent}bg_color: ${convertHexColor(widget.bg_color)}`)
     }
     
     if (widget.bg_opa !== undefined && widget.bg_opa !== 100) {
-      lines.push(`  bg_opa: ${widget.bg_opa}%`)
+      lines.push(`${indent}bg_opa: ${widget.bg_opa}%`)
     }
     
     if (widget.border_width) {
-      lines.push(`  border_width: ${widget.border_width}`)
+      lines.push(`${indent}border_width: ${widget.border_width}`)
     }
     
     if (widget.border_color) {
-      lines.push(`  border_color: ${convertHexColor(widget.border_color)}`)
+      lines.push(`${indent}border_color: ${convertHexColor(widget.border_color)}`)
     }
     
     if (widget.radius !== undefined) {
-      lines.push(`  radius: ${widget.radius}`)
+      lines.push(`${indent}radius: ${widget.radius}`)
     }
     
     if (widget.pad_all) {
-      lines.push(`  pad_all: ${widget.pad_all}`)
+      lines.push(`${indent}pad_all: ${widget.pad_all}`)
     }
     
     return lines.join('\n')
