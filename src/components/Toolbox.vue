@@ -28,13 +28,13 @@ const widgetCategories = ref([
     name: 'Display',
     icon: 'visibility',
     description: 'Display & feedback widgets',
-    widgets: ['label', 'bar', 'arc', 'line', 'led', 'qrcode', 'spinner']
+    widgets: ['bar', 'label', 'led', 'line', 'qrcode', 'spinner']
   },
   {
     name: 'Input',
     icon: 'edit',
     description: 'Input & control widgets',
-    widgets: ['button', 'buttonmatrix', 'slider', 'spinbox', 'dropdown', 'checkbox', 'keyboard', 'textarea', 'roller']
+    widgets: ['arc', 'button', 'buttonmatrix', 'checkbox', 'dropdown', 'keyboard', 'roller', 'slider', 'spinbox', 'switch', 'textarea']
   }
 ])
 

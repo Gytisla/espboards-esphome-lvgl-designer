@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useDesignerStore } from '../stores/designer'
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import Icon from './Icon.vue'
 import WidgetRenderer from './WidgetRenderer.vue'
 import TabviewPreviewRenderer from './TabviewPreviewRenderer.vue'
@@ -12,8 +12,10 @@ const minZoom = 0.25
 const maxZoom = 3
 const isDraggingArc = ref(false)
 const draggingArcWidget = ref<Widget | null>(null)
+const arcDragStartPos = ref({ x: 0, y: 0 })
 const isDraggingSlider = ref(false)
 const draggingSliderWidget = ref<Widget | null>(null)
+const sliderDragStartPos = ref({ x: 0, y: 0 })
 
 // Pan state
 const isPanning = ref(false)
@@ -26,6 +28,80 @@ const panOffsetY = ref(0)
 const isPanLocked = ref(false)
 
 const previewScales = [0.5, 0.75, 1, 1.5, 2]
+
+// Global mouseup/mousemove listeners for drag tracking
+const handleGlobalMouseUp = () => {
+  const wasDragging = isDraggingArc.value || isDraggingSlider.value
+  
+  isDraggingArc.value = false
+  draggingArcWidget.value = null
+  isDraggingSlider.value = false
+  draggingSliderWidget.value = null
+  isPanning.value = false
+  
+  // Save state if we were dragging
+  if (wasDragging) {
+    store.saveState()
+  }
+}
+
+const handleGlobalMouseMove = (event: MouseEvent) => {
+  // Only process if we're actively dragging or panning
+  if (!isDraggingArc.value && !isDraggingSlider.value && !isPanning.value) {
+    return
+  }
+  
+  // Check if left mouse button is held down (buttons === 1 means left button is pressed)
+  if (event.buttons !== 1 && !isPanning.value) {
+    // Mouse button is not held, stop dragging
+    isDraggingArc.value = false
+    isDraggingSlider.value = false
+    draggingArcWidget.value = null
+    draggingSliderWidget.value = null
+    return
+  }
+  
+  // For arc: check if mouse has moved enough to be considered a drag (at least 3px)
+  if (isDraggingArc.value && draggingArcWidget.value) {
+    const dx = event.clientX - arcDragStartPos.value.x
+    const dy = event.clientY - arcDragStartPos.value.y
+    const distance = Math.sqrt(dx * dx + dy * dy)
+    
+    // Only continue dragging if mouse moved more than 3px
+    if (distance > 3) {
+      updateArcValue(draggingArcWidget.value, event)
+    }
+  } 
+  // For slider: check if mouse has moved enough to be considered a drag
+  else if (isDraggingSlider.value && draggingSliderWidget.value) {
+    const dx = event.clientX - sliderDragStartPos.value.x
+    const dy = event.clientY - sliderDragStartPos.value.y
+    const distance = Math.sqrt(dx * dx + dy * dy)
+    
+    // Only continue dragging if mouse moved more than 3px
+    if (distance > 3) {
+      updateSliderValue(draggingSliderWidget.value, event)
+    }
+  } 
+  // For panning
+  else if (isPanning.value) {
+    const deltaX = event.clientX - panStartX.value
+    const deltaY = event.clientY - panStartY.value
+    panOffsetX.value = panStartOffsetX.value + deltaX
+    panOffsetY.value = panStartOffsetY.value + deltaY
+  }
+}
+
+// Attach document-level listeners
+onMounted(() => {
+  document.addEventListener('mouseup', handleGlobalMouseUp)
+  document.addEventListener('mousemove', handleGlobalMouseMove)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('mouseup', handleGlobalMouseUp)
+  document.removeEventListener('mousemove', handleGlobalMouseMove)
+})
 
 function handleClose() {
   store.showPreviewModal = false
@@ -40,6 +116,17 @@ function handleZoomOut() {
 }
 
 function handleWheel(event: WheelEvent) {
+  // Don't prevent default if scrolling on interactive widgets
+  const target = event.target as HTMLElement
+  if (target) {
+    // Check if we're inside a roller, spinbox, or other interactive widget
+    const interactiveParent = target.closest('[data-interactive="true"]')
+    if (interactiveParent) {
+      // Let the widget handle it
+      return
+    }
+  }
+  
   event.preventDefault()
   
   const canvas = document.getElementById('preview-canvas')
@@ -105,6 +192,7 @@ function handleArcMouseDown(widget: Widget, event: MouseEvent) {
   if (widget.type === 'arc' && widget.adjustable) {
     isDraggingArc.value = true
     draggingArcWidget.value = widget
+    arcDragStartPos.value = { x: event.clientX, y: event.clientY }
     updateArcValue(widget, event)
     event.stopPropagation()
   }
@@ -114,6 +202,7 @@ function handleSliderMouseDown(widget: Widget, event: MouseEvent) {
   if (widget.type === 'slider') {
     isDraggingSlider.value = true
     draggingSliderWidget.value = widget
+    sliderDragStartPos.value = { x: event.clientX, y: event.clientY }
     updateSliderValue(widget, event)
     event.stopPropagation()
   }
@@ -131,20 +220,6 @@ function handleCanvasMouseDown(event: MouseEvent) {
   }
 }
 
-function handleCanvasMouseMove(event: MouseEvent) {
-  if (isPanning.value) {
-    const deltaX = event.clientX - panStartX.value
-    const deltaY = event.clientY - panStartY.value
-    
-    panOffsetX.value = panStartOffsetX.value + deltaX
-    panOffsetY.value = panStartOffsetY.value + deltaY
-  } else if (isDraggingArc.value && draggingArcWidget.value) {
-    updateArcValue(draggingArcWidget.value, event)
-  } else if (isDraggingSlider.value && draggingSliderWidget.value) {
-    updateSliderValue(draggingSliderWidget.value, event)
-  }
-}
-
 function handleCanvasMouseUp() {
   isPanning.value = false
   isDraggingArc.value = false
@@ -154,6 +229,11 @@ function handleCanvasMouseUp() {
 }
 
 function updateArcValue(widget: Widget, event: MouseEvent) {
+  // Guard: only update if we're still dragging
+  if (!isDraggingArc.value || !draggingArcWidget.value) {
+    return
+  }
+  
   const canvas = document.querySelector('#preview-canvas') as HTMLElement
   if (!canvas) return
   
@@ -208,6 +288,11 @@ function updateArcValue(widget: Widget, event: MouseEvent) {
 }
 
 function updateSliderValue(widget: Widget, event: MouseEvent) {
+  // Guard: only update if we're still dragging
+  if (!isDraggingSlider.value || !draggingSliderWidget.value) {
+    return
+  }
+  
   const canvas = document.querySelector('#preview-canvas') as HTMLElement
   if (!canvas) return
   
@@ -412,7 +497,6 @@ function resetZoom() {
                 transformOrigin: 'center center',
                 cursor: isPanning ? 'grabbing' : 'default'
               }"
-              @mousemove="handleCanvasMouseMove"
               @mousedown="handleCanvasMouseDown"
               @mouseup="handleCanvasMouseUp"
               @mouseleave="handleCanvasMouseUp"
@@ -474,7 +558,7 @@ function resetZoom() {
               </span>
               <span class="flex items-center gap-1.5 text-indigo-400">
                 <Icon icon="gesture-tap" size="16" />
-                Interactive: Arcs • Sliders • Switches • Tabs
+                Interactive: Arcs • Checkboxes • Rollers • Sliders • Spinboxes • Switches • Tabs
               </span>
             </div>
             

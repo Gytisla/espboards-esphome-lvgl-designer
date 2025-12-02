@@ -23,6 +23,9 @@ const resizeStartY = ref(0)
 const resizeStartWidth = ref(0)
 const resizeStartHeight = ref(0)
 
+// Dropdown state for preview interactivity
+const openDropdownId = ref<string | null>(null)
+
 function handleNestedWidgetClick(event: MouseEvent, childWidget: Widget) {
   event.stopPropagation()
   store.selectWidget(childWidget.id)
@@ -513,20 +516,96 @@ function getBarFillWidth(widget: Widget): number {
   <div v-else-if="widget.type === 'container'" class="w-full h-full border-2 border-dashed border-gray-600 rounded bg-gray-800/30"></div>
 
   <!-- Dropdown Widget -->
-  <div v-else-if="widget.type === 'dropdown'" class="w-full h-full flex items-center justify-between px-2 bg-gray-700 rounded border border-gray-600">
-    <span class="text-xs text-gray-300 truncate">{{ widget.options?.[widget.selected_index || 0] || 'Select...' }}</span>
-    <Icon icon="chevron-down" size="14" class="text-gray-400 shrink-0" />
+  <div 
+    v-else-if="widget.type === 'dropdown'" 
+    class="relative w-full h-full"
+    @click.stop="props.isPreview ? (openDropdownId = openDropdownId === widget.id ? null : widget.id) : null"
+  >
+    <div class="w-full h-full flex items-center justify-between px-2 bg-gray-700 rounded border border-gray-600 cursor-pointer hover:bg-gray-600 transition-colors">
+      <span class="text-xs text-gray-300 truncate">{{ widget.options?.[widget.selected_index || 0] || 'Select...' }}</span>
+      <Icon :icon="openDropdownId === widget.id ? 'chevron-up' : 'chevron-down'" size="14" class="text-gray-400 shrink-0" />
+    </div>
+    
+    <!-- Dropdown menu (shown in preview mode) -->
+    <div 
+      v-if="props.isPreview && openDropdownId === widget.id && widget.options"
+      class="absolute top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-600 rounded shadow-lg z-50"
+    >
+      <div
+        v-for="(option, index) in widget.options"
+        :key="index"
+        @click.stop="() => {
+          widget.selected_index = index
+          openDropdownId = null
+        }"
+        :class="[
+          'px-2 py-1.5 text-xs text-gray-300 hover:bg-indigo-600 cursor-pointer transition-colors',
+          index !== widget.options!.length - 1 ? 'border-b border-gray-700' : ''
+        ]"
+      >
+        {{ option }}
+      </div>
+    </div>
   </div>
 
   <!-- Roller Widget -->
-  <div v-else-if="widget.type === 'roller'" class="w-full h-full flex flex-col items-center justify-center overflow-hidden rounded"
+  <div v-else-if="widget.type === 'roller'" 
+    data-interactive="true"
+    class="w-full h-full flex flex-col items-center justify-center overflow-hidden rounded pointer-events-auto"
     :style="{
       backgroundColor: widget.bg_color || '#374151',
       borderWidth: widget.border_width ? `${widget.border_width}px` : '1px',
       borderStyle: 'solid',
       borderColor: widget.border_color || '#4B5563',
-      borderRadius: widget.radius ? `${widget.radius}px` : '0.25rem'
-    }">
+      borderRadius: widget.radius ? `${widget.radius}px` : '0.25rem',
+      cursor: props.isPreview ? 'pointer' : 'default'
+    }"
+    @wheel="(event: WheelEvent) => {
+      if (!props.isPreview || !widget.options || widget.options.length === 0) return
+      event.preventDefault()
+      event.stopPropagation()
+      const maxIndex = widget.options.length - 1
+      const isInfinite = widget.mode === 'INFINITE'
+      let newIndex = (widget.selected_index || 0) + (event.deltaY > 0 ? 1 : -1)
+      
+      if (isInfinite) {
+        // Wrap around for infinite mode
+        newIndex = ((newIndex % (maxIndex + 1)) + (maxIndex + 1)) % (maxIndex + 1)
+      } else {
+        // Clamp for normal mode
+        newIndex = Math.max(0, Math.min(maxIndex, newIndex))
+      }
+      widget.selected_index = newIndex
+    }"
+    @touchstart="(event: TouchEvent) => {
+      if (!props.isPreview) return
+      const el = event.currentTarget as HTMLElement
+      el.setAttribute('data-touch-start-y', String(event.touches[0]?.clientY ?? 0))
+    }"
+    @touchmove="(event: TouchEvent) => {
+      if (!props.isPreview || !widget.options || widget.options.length === 0) return
+      event.preventDefault()
+      const el = event.currentTarget as HTMLElement
+      const startY = parseFloat(el.getAttribute('data-touch-start-y') ?? '0')
+      const currentY = event.touches[0]?.clientY ?? 0
+      const deltaY = currentY - startY
+      
+      // Swipe down = next, swipe up = prev
+      if (Math.abs(deltaY) > 20) {
+        const maxIndex = widget.options.length - 1
+        const isInfinite = widget.mode === 'INFINITE'
+        let newIndex = (widget.selected_index || 0) + (deltaY > 0 ? -1 : 1)
+        
+        if (isInfinite) {
+          newIndex = ((newIndex % (maxIndex + 1)) + (maxIndex + 1)) % (maxIndex + 1)
+        } else {
+          newIndex = Math.max(0, Math.min(maxIndex, newIndex))
+        }
+        widget.selected_index = newIndex
+        el.setAttribute('data-touch-start-y', String(currentY))
+      }
+    }"
+  >
     <!-- Scrollable options list -->
     <div class="flex-1 w-full flex flex-col items-center justify-center relative">
       <!-- Options display -->
@@ -538,15 +617,22 @@ function getBarFillWidth(widget: Widget): number {
         <template v-if="widget.options && widget.options.length > 0">
           <!-- Show visible rows centered around selected index -->
           <div 
-            v-for="(option, index) in widget.options.slice(
+            v-for="(option, relativeIndex) in widget.options.slice(
               Math.max(0, (widget.selected_index || 0) - Math.floor((widget.visible_row_count || 3) / 2)),
               Math.min(widget.options.length, (widget.selected_index || 0) + Math.ceil((widget.visible_row_count || 3) / 2) + 1)
             )"
-            :key="index"
-            class="text-xs py-1 px-2 w-full text-center transition-all"
-            :class="{
-              'font-bold bg-indigo-600/30': Math.max(0, (widget.selected_index || 0) - Math.floor((widget.visible_row_count || 3) / 2)) + index === (widget.selected_index || 0),
-              'opacity-50': Math.max(0, (widget.selected_index || 0) - Math.floor((widget.visible_row_count || 3) / 2)) + index !== (widget.selected_index || 0)
+            :key="relativeIndex"
+            :class="[
+              'text-xs py-1 px-2 w-full text-center transition-all cursor-pointer hover:bg-indigo-500/20',
+              {
+                'font-bold bg-indigo-600/30': Math.max(0, (widget.selected_index || 0) - Math.floor((widget.visible_row_count || 3) / 2)) + relativeIndex === (widget.selected_index || 0),
+                'opacity-50': Math.max(0, (widget.selected_index || 0) - Math.floor((widget.visible_row_count || 3) / 2)) + relativeIndex !== (widget.selected_index || 0)
+              }
+            ]"
+            @click.stop="() => {
+              const sliceStart = Math.max(0, (widget.selected_index || 0) - Math.floor((widget.visible_row_count || 3) / 2))
+              const actualIndex = sliceStart + relativeIndex
+              widget.selected_index = actualIndex
             }"
           >
             {{ option }}
@@ -640,16 +726,31 @@ function getBarFillWidth(widget: Widget): number {
   </div>
 
   <!-- Spinbox Widget -->
-  <div v-else-if="widget.type === 'spinbox'" class="w-full h-full flex items-center justify-center px-2 rounded"
+  <div v-else-if="widget.type === 'spinbox'" 
+    data-interactive="true"
+    class="w-full h-full flex items-center justify-center px-2 rounded relative overflow-hidden"
     :style="{
       backgroundColor: widget.bg_color || '#374151',
       borderWidth: widget.border_width ? `${widget.border_width}px` : '1px',
       borderStyle: 'solid',
       borderColor: widget.border_color || '#4B5563',
       borderRadius: widget.radius ? `${widget.radius}px` : '0.25rem',
-      color: widget.text_color || '#D1D5DB'
-    }">
-    <div class="flex items-center gap-1 font-mono text-sm">
+      color: widget.text_color || '#D1D5DB',
+      cursor: props.isPreview ? 'grab' : 'default'
+    }"
+    @wheel="(event: WheelEvent) => {
+      if (!props.isPreview) return
+      event.preventDefault()
+      event.stopPropagation()
+      const min = widget.range_from || 0
+      const max = widget.range_to || 100
+      const decimalPlaces = widget.decimal_places || 0
+      const step = Math.pow(10, -decimalPlaces) || 1
+      const delta = (event as any).deltaY > 0 ? -step : step
+      widget.value = Math.max(min, Math.min(max, (typeof widget.value === 'number' ? widget.value : 0) + delta))
+    }"
+  >
+    <div class="flex items-center gap-1 font-mono text-sm group" :class="props.isPreview ? 'cursor-grab' : 'cursor-pointer'">
       <!-- Show negative sign if range includes negatives -->
       <span v-if="(widget.range_from || 0) < 0" class="opacity-70">
         {{ (typeof widget.value === 'number' ? widget.value : 0) < 0 ? '-' : ' ' }}
@@ -658,13 +759,40 @@ function getBarFillWidth(widget: Widget): number {
       <span class="font-semibold tracking-wider">
         {{ formatSpinboxValue(widget) }}
       </span>
-      <!-- Cursor indicator at selected digit -->
-      <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-0.5 bg-indigo-500 animate-pulse"></div>
+      <!-- Cursor indicator at selected digit (only in edit mode) -->
+      <div v-if="!props.isPreview" class="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-0.5 bg-indigo-500 animate-pulse"></div>
     </div>
-    <!-- Increment/Decrement hint icons -->
-    <div class="absolute top-0.5 right-1 flex flex-col gap-0">
-      <Icon icon="keyboard_arrow_up" size="12" class="text-gray-500 opacity-40" />
-      <Icon icon="keyboard_arrow_down" size="12" class="text-gray-500 opacity-40" />
+    <!-- Increment/Decrement buttons (in preview) -->
+    <div v-if="props.isPreview" class="absolute top-0.5 right-1 flex flex-col gap-0">
+      <button
+        @click.stop="() => {
+          const max = widget.range_to || 100
+          const decimalPlaces = widget.decimal_places || 0
+          const step = Math.pow(10, -decimalPlaces) || 1
+          widget.value = Math.min(max, (typeof widget.value === 'number' ? widget.value : 0) + step)
+        }"
+        class="p-0.5 hover:bg-indigo-600 rounded transition-colors"
+        title="Increment or scroll up"
+      >
+        <Icon icon="keyboard-arrow-up" size="12" class="text-gray-300 hover:text-white" />
+      </button>
+      <button
+        @click.stop="() => {
+          const min = widget.range_from || 0
+          const decimalPlaces = widget.decimal_places || 0
+          const step = Math.pow(10, -decimalPlaces) || 1
+          widget.value = Math.max(min, (typeof widget.value === 'number' ? widget.value : 0) - step)
+        }"
+        class="p-0.5 hover:bg-indigo-600 rounded transition-colors"
+        title="Decrement or scroll down"
+      >
+        <Icon icon="keyboard-arrow-down" size="12" class="text-gray-300 hover:text-white" />
+      </button>
+    </div>
+    <!-- Increment/Decrement hint icons (in edit mode) -->
+    <div v-else class="absolute top-0.5 right-1 flex flex-col gap-0">
+      <Icon icon="keyboard-arrow-up" size="12" class="text-gray-500 opacity-40" />
+      <Icon icon="keyboard-arrow-down" size="12" class="text-gray-500 opacity-40" />
     </div>
   </div>
 

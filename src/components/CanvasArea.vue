@@ -1171,7 +1171,7 @@ function getWidgetStyle(widget: Widget) {
           @click="handleWidgetClick($event, widget)"
           @dragstart="handleWidgetDragStart($event, widget)"
         >
-          <WidgetRenderer :widget="widget" :hoveredDropTargetId="hoveredDropTargetId" />
+          <WidgetRenderer :widget="widget" :hoveredDropTargetId="hoveredDropTargetId" :isPreview="true" />
           
           <!-- Resize handle (bottom-right corner) -->
           <div
