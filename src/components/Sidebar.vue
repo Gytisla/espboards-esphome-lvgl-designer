@@ -514,6 +514,14 @@ const draggedItem = ref<{
   tileIndex?: number // For tile widgets
 } | null>(null)
 
+// Hover state for drop target visualization
+const hoveredDropTargetId = ref<string | null>(null)
+
+// Drop indicator state for showing line indicators when reordering
+const dropIndicatorId = ref<string | null>(null) // Widget ID showing drop indicator
+const dropIndicatorPosition = ref<'before' | 'after' | null>(null) // Line position relative to widget
+const isReordering = ref(false) // True when reordering widgets at same level
+
 // Collapse state maps
 const collapsedWidgets = ref<Record<string, boolean>>({})
 const collapsedTabs = ref<Record<string, Record<string, boolean>>>({}) // widgetId -> { tabId: boolean }
@@ -534,6 +542,54 @@ function toggleTabCollapse(widgetId: string, tabId: string) {
 
 function isTabCollapsed(widgetId: string, tabId: string) {
   return !!(collapsedTabs.value[widgetId] && collapsedTabs.value[widgetId][tabId])
+}
+
+// Helper function to determine drop position when reordering
+function handleWidgetReorderDragOver(event: DragEvent, widgetId: string) {
+  if (!isReordering.value || !draggedItem.value || draggedItem.value.widgetId === widgetId) {
+    return
+  }
+  
+  // Get the mouse Y position relative to the element
+  const rect = (event.target as HTMLElement).getBoundingClientRect()
+  const mouseY = event.clientY - rect.top
+  const midpoint = rect.height / 2
+  
+  // Determine if drop should be before or after based on mouse position
+  dropIndicatorId.value = widgetId
+  dropIndicatorPosition.value = mouseY < midpoint ? 'before' : 'after'
+}
+
+// Helper function to determine drop position when reordering tab widgets
+function handleTabWidgetReorderDragOver(event: DragEvent, widgetId: string) {
+  if (!isReordering.value || !draggedItem.value || draggedItem.value.widgetId === widgetId) {
+    return
+  }
+  
+  // Get the mouse Y position relative to the element
+  const rect = (event.target as HTMLElement).getBoundingClientRect()
+  const mouseY = event.clientY - rect.top
+  const midpoint = rect.height / 2
+  
+  // Determine if drop should be before or after based on mouse position
+  dropIndicatorId.value = widgetId
+  dropIndicatorPosition.value = mouseY < midpoint ? 'before' : 'after'
+}
+
+// Helper function to determine drop position when reordering tile widgets
+function handleTileWidgetReorderDragOver(event: DragEvent, widgetId: string) {
+  if (!isReordering.value || !draggedItem.value || draggedItem.value.widgetId === widgetId) {
+    return
+  }
+  
+  // Get the mouse Y position relative to the element
+  const rect = (event.target as HTMLElement).getBoundingClientRect()
+  const mouseY = event.clientY - rect.top
+  const midpoint = rect.height / 2
+  
+  // Determine if drop should be before or after based on mouse position
+  dropIndicatorId.value = widgetId
+  dropIndicatorPosition.value = mouseY < midpoint ? 'before' : 'after'
 }
 
 function toggleTileCollapse(widgetId: string, tileId: string) {
@@ -588,7 +644,22 @@ function handleWidgetDragOver(event: DragEvent) {
   if (draggedItem.value) {
     event.preventDefault()
     event.dataTransfer!.dropEffect = 'move'
+    
+    // Detect if this is a reordering scenario (dragging widget at root level)
+    if (draggedItem.value.type === 'widget') {
+      isReordering.value = true
+    } else {
+      isReordering.value = false
+    }
   }
+}
+
+function handleWidgetDragEnd() {
+  hoveredDropTargetId.value = null
+  dropIndicatorId.value = null
+  dropIndicatorPosition.value = null
+  isReordering.value = false
+  draggedItem.value = null
 }
 
 function handleWidgetDrop(event: DragEvent, targetWidget: Widget) {
@@ -739,6 +810,13 @@ function handleTabWidgetDragOver(event: DragEvent, tabviewWidget: Widget, tabInd
   if (draggedItem.value) {
     event.preventDefault()
     event.dataTransfer!.dropEffect = 'move'
+    
+    // Detect if this is a reordering scenario (dragging tab-widget within same tab)
+    if (draggedItem.value.type === 'tab-widget' && draggedItem.value.parentId === tabviewWidget.id && draggedItem.value.tabIndex === tabIndex) {
+      isReordering.value = true
+    } else {
+      isReordering.value = false
+    }
   }
 }
 
@@ -776,10 +854,11 @@ function handleTabWidgetDrop(event: DragEvent, tabviewWidget: Widget, tabIndex: 
     tabviewWidget.tabs = [...tabviewWidget.tabs!]
     store.saveState()
   } else if (draggedItem.value.type === 'tab-widget') {
-    // Moving within tabs or between tabs
-    if (draggedItem.value.parentId !== tabviewWidget.id) return
+    // Moving within tabs, between tabs in same tabview, or between different tabviews
+    const sourceTabview = store.widgets.find(w => w.id === draggedItem.value!.parentId)
+    if (!sourceTabview?.tabs) return
     
-    const sourceTab = tabviewWidget.tabs?.[draggedItem.value.tabIndex!]
+    const sourceTab = sourceTabview.tabs[draggedItem.value.tabIndex!]
     if (!sourceTab?.widgets) return
     
     const draggedIndex = sourceTab.widgets.findIndex(w => w.id === draggedItem.value!.widgetId)
@@ -788,8 +867,8 @@ function handleTabWidgetDrop(event: DragEvent, tabviewWidget: Widget, tabIndex: 
     const [draggedWidget] = sourceTab.widgets.splice(draggedIndex, 1)
     if (!draggedWidget) return
     
-    // If moving within the same tab, find target index after removal
-    if (draggedItem.value.tabIndex === tabIndex) {
+    // If moving within the same tab and same tabview
+    if (draggedItem.value.parentId === tabviewWidget.id && draggedItem.value.tabIndex === tabIndex) {
       const targetIndex = sourceTab.widgets.findIndex(w => w.id === targetWidget.id)
       if (targetIndex === -1) {
         sourceTab.widgets.push(draggedWidget)
@@ -797,7 +876,11 @@ function handleTabWidgetDrop(event: DragEvent, tabviewWidget: Widget, tabIndex: 
         sourceTab.widgets.splice(targetIndex, 0, draggedWidget)
       }
     } else {
-      // Moving to a different tab
+      // Moving to a different tab (same or different tabview)
+      // Reset position to 0,0 when moving between tabs
+      draggedWidget.x = 0
+      draggedWidget.y = 0
+      
       const targetIndex = targetTab.widgets.findIndex(w => w.id === targetWidget.id)
       if (targetIndex === -1) {
         targetTab.widgets.push(draggedWidget)
@@ -806,6 +889,7 @@ function handleTabWidgetDrop(event: DragEvent, tabviewWidget: Widget, tabIndex: 
       }
     }
     
+    sourceTabview.tabs = [...sourceTabview.tabs]
     tabviewWidget.tabs = [...tabviewWidget.tabs!]
     store.saveState()
   } else if (draggedItem.value.type === 'tile-widget') {
@@ -876,16 +960,17 @@ function handleTabContainerDrop(event: DragEvent, tabviewWidget: Widget, tabInde
     tabviewWidget.tabs = [...tabviewWidget.tabs!]
     store.saveState()
   } else if (draggedItem.value.type === 'tab-widget') {
-    // Moving between tabs
-    if (draggedItem.value.parentId !== tabviewWidget.id) return
+    // Moving between tabs (same or different tabview)
+    const sourceTabview = store.widgets.find(w => w.id === draggedItem.value!.parentId)
+    if (!sourceTabview?.tabs) return
     
     // Don't do anything if dropping in the same tab with no target
-    if (draggedItem.value.tabIndex === tabIndex) {
+    if (draggedItem.value.parentId === tabviewWidget.id && draggedItem.value.tabIndex === tabIndex) {
       draggedItem.value = null
       return
     }
     
-    const sourceTab = tabviewWidget.tabs?.[draggedItem.value.tabIndex!]
+    const sourceTab = sourceTabview.tabs[draggedItem.value.tabIndex!]
     if (!sourceTab?.widgets) return
     
     const draggedIndex = sourceTab.widgets.findIndex(w => w.id === draggedItem.value!.widgetId)
@@ -894,11 +979,16 @@ function handleTabContainerDrop(event: DragEvent, tabviewWidget: Widget, tabInde
     const [draggedWidget] = sourceTab.widgets.splice(draggedIndex, 1)
     if (!draggedWidget) return
     
+    // Reset position to 0,0 when moving between tabs or tabviews
+    draggedWidget.x = 0
+    draggedWidget.y = 0
+    
     if (!targetTab.widgets) {
       targetTab.widgets = []
     }
     targetTab.widgets.push(draggedWidget)
     
+    sourceTabview.tabs = [...sourceTabview.tabs]
     tabviewWidget.tabs = [...tabviewWidget.tabs!]
     store.saveState()
   } else if (draggedItem.value.type === 'tile-widget') {
@@ -946,6 +1036,13 @@ function handleTileWidgetDragOver(event: DragEvent, tileviewWidget: Widget, tile
   if (draggedItem.value) {
     event.preventDefault()
     event.dataTransfer!.dropEffect = 'move'
+    
+    // Detect if this is a reordering scenario (dragging tile-widget within same tile)
+    if (draggedItem.value.type === 'tile-widget' && draggedItem.value.parentId === tileviewWidget.id && draggedItem.value.tileIndex === tileIndex) {
+      isReordering.value = true
+    } else {
+      isReordering.value = false
+    }
   }
 }
 
@@ -1152,6 +1249,10 @@ function handleTileContainerDrop(event: DragEvent, tileviewWidget: Widget, tileI
 
 function handleDragEnd() {
   draggedItem.value = null
+  hoveredDropTargetId.value = null
+  dropIndicatorId.value = null
+  dropIndicatorPosition.value = null
+  isReordering.value = false
 }
 
 function getWidgetIcon(widget: Widget): string {
@@ -1192,12 +1293,13 @@ function getWidgetIcon(widget: Widget): string {
           <!-- Root container header -->
           <li class="mb-2">
             <div
-              @dragover.prevent="handleWidgetDragOver($event)"
+              @dragover.prevent="hoveredDropTargetId = '__root__'; handleWidgetDragOver($event)"
               @drop="handleRootDrop($event)"
               :class="[
                 'flex items-center gap-2 p-2 rounded-lg text-xs font-semibold transition-all',
-                'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300',
-                'border border-dashed border-gray-300 dark:border-gray-600'
+                hoveredDropTargetId === '__root__'
+                  ? 'bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100 border-2 border-green-500 ring-2 ring-green-400'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-dashed border-gray-300 dark:border-gray-600'
               ]"
               title="Root container - all widgets must be children of this"
             >
@@ -1209,18 +1311,28 @@ function getWidgetIcon(widget: Widget): string {
 
           <!-- Root widgets (shown as children of root) -->
           <ul class="ml-2 space-y-1 border-l-2 border-gray-300 dark:border-gray-700 pl-2">
-            <li v-for="widget in store.widgets" :key="widget.id">
+            <li v-for="widget in store.widgets" :key="widget.id" class="relative">
+              <!-- Drop indicator line (shown when reordering) -->
+              <div
+                v-if="dropIndicatorId === widget.id && isReordering && draggedItem?.type === 'widget'"
+                :class="[
+                  'absolute left-0 right-0 h-0.5 bg-blue-500 pointer-events-none z-10',
+                  dropIndicatorPosition === 'before' ? '-top-0.5' : '-bottom-0.5'
+                ]"
+              />
             <!-- Top-level widget -->
             <div
               draggable="true"
               @dragstart="handleWidgetDragStart($event, widget)"
-              @dragover="handleWidgetDragOver($event)"
+              @dragover.prevent="hoveredDropTargetId = (isReordering || widget.type === 'tabview' || widget.type === 'tileview') ? null : widget.id; handleWidgetDragOver($event); handleWidgetReorderDragOver($event, widget.id)"
               @drop="handleWidgetDrop($event, widget)"
               @dragend="handleDragEnd"
               @click="store.selectWidget(widget.id)"
               :class="[
                 'flex items-center justify-between p-2 rounded-lg cursor-move text-xs transition-all group',
-                store.selectedWidgetId === widget.id
+                !isReordering && hoveredDropTargetId === widget.id
+                  ? 'bg-green-600 dark:bg-green-700 text-white ring-2 ring-green-400 border-green-400'
+                  : store.selectedWidgetId === widget.id
                   ? 'bg-indigo-600 text-white'
                   : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'
               ]"
@@ -1260,8 +1372,13 @@ function getWidgetIcon(widget: Widget): string {
               <li v-for="(tab, tabIndex) in widget.tabs" :key="tab.id" class="space-y-1">
                 <!-- Tab header -->
                 <div 
-                  class="flex items-center gap-1 px-1.5 py-1 text-[11px] text-gray-500 dark:text-gray-400 font-medium -ml-2"
-                  @dragover="handleTabContainerDragOver($event, widget, tabIndex)"
+                  class="flex items-center gap-1 px-1.5 py-1 text-[11px] font-medium -ml-2 rounded transition-all"
+                  :class="[
+                    hoveredDropTargetId === `tab_${widget.id}_${tab.id}`
+                      ? 'bg-green-600 dark:bg-green-700 text-white ring-1 ring-green-400'
+                      : 'text-gray-500 dark:text-gray-400'
+                  ]"
+                  @dragover.prevent="hoveredDropTargetId = `tab_${widget.id}_${tab.id}`; handleTabContainerDragOver($event, widget, tabIndex)"
                   @drop="handleTabContainerDrop($event, widget, tabIndex)"
                 >
                   <button
@@ -1288,13 +1405,21 @@ function getWidgetIcon(widget: Widget): string {
                   <li
                     v-for="childWidget in tab.widgets"
                     :key="childWidget.id"
-                    class="space-y-1"
+                    class="relative space-y-1"
                   >
+                    <!-- Drop indicator line (shown when reordering) -->
+                    <div
+                      v-if="dropIndicatorId === childWidget.id && isReordering && draggedItem?.type === 'tab-widget' && draggedItem?.parentId === widget.id && draggedItem?.tabIndex === tabIndex"
+                      :class="[
+                        'absolute left-0 right-0 h-0.5 bg-blue-500 pointer-events-none z-10',
+                        dropIndicatorPosition === 'before' ? '-top-0.5' : '-bottom-0.5'
+                      ]"
+                    />
                     <!-- Child widget item -->
                     <div
                       draggable="true"
                       @dragstart="handleTabWidgetDragStart($event, widget, tabIndex, childWidget)"
-                      @dragover="handleTabWidgetDragOver($event, widget, tabIndex)"
+                      @dragover="handleTabWidgetDragOver($event, widget, tabIndex); handleTabWidgetReorderDragOver($event, childWidget.id)"
                       @drop="handleTabWidgetDrop($event, widget, tabIndex, childWidget)"
                       @dragend="handleDragEnd"
                       @click.stop="selectTabWidget(widget, tabIndex, childWidget.id)"
@@ -1327,11 +1452,13 @@ function getWidgetIcon(widget: Widget): string {
                         <!-- Tile header -->
                         <div 
                           @click.stop="selectTileFromList(childWidget, tile.row, tile.column)"
-                          @dragover="handleTileContainerDragOver($event, childWidget, nestedTileIndex)"
+                          @dragover.prevent="hoveredDropTargetId = `tile_${childWidget.id}_${tile.id}`; handleTileContainerDragOver($event, childWidget, nestedTileIndex)"
                           @drop="handleTileContainerDrop($event, childWidget, nestedTileIndex)"
                           :class="[
                             'flex items-center gap-1 px-1.5 py-1 text-[10px] font-medium cursor-pointer rounded transition-all group -ml-2',
-                            tile.row === (childWidget.current_tile_row || 0) && tile.column === (childWidget.current_tile_column || 0)
+                            hoveredDropTargetId === `tile_${childWidget.id}_${tile.id}`
+                              ? 'bg-green-600 dark:bg-green-700 text-white ring-1 ring-green-400'
+                              : tile.row === (childWidget.current_tile_row || 0) && tile.column === (childWidget.current_tile_column || 0)
                               ? 'bg-indigo-600 text-white'
                               : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                           ]"
@@ -1369,19 +1496,30 @@ function getWidgetIcon(widget: Widget): string {
                           <li
                             v-for="tileWidget in tile.widgets"
                             :key="tileWidget.id"
-                            draggable="true"
-                            @dragstart="handleTileWidgetDragStart($event, childWidget, nestedTileIndex, tileWidget)"
-                            @dragover="handleTileWidgetDragOver($event, childWidget, nestedTileIndex)"
-                            @drop="handleTileWidgetDrop($event, childWidget, nestedTileIndex, tileWidget)"
-                            @dragend="handleDragEnd"
-                            @click.stop="selectTileWidget(childWidget, nestedTileIndex, tileWidget.id)"
-                            :class="[
-                              'flex items-center justify-between px-2 py-0.5 rounded cursor-move text-[10px] transition-all group',
-                              store.selectedWidgetId === tileWidget.id
-                                ? 'bg-indigo-600 text-white'
-                                : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400'
-                            ]"
+                            class="relative"
                           >
+                            <!-- Drop indicator line (shown when reordering) -->
+                            <div
+                              v-if="dropIndicatorId === tileWidget.id && isReordering && draggedItem?.type === 'tile-widget' && draggedItem?.parentId === childWidget.id && draggedItem?.tileIndex === nestedTileIndex"
+                              :class="[
+                                'absolute left-0 right-0 h-0.5 bg-blue-500 pointer-events-none z-10',
+                                dropIndicatorPosition === 'before' ? '-top-0.5' : '-bottom-0.5'
+                              ]"
+                            />
+                            <div
+                              draggable="true"
+                              @dragstart="handleTileWidgetDragStart($event, childWidget, nestedTileIndex, tileWidget)"
+                              @dragover="handleTileWidgetDragOver($event, childWidget, nestedTileIndex); handleTileWidgetReorderDragOver($event, tileWidget.id)"
+                              @drop="handleTileWidgetDrop($event, childWidget, nestedTileIndex, tileWidget)"
+                              @dragend="handleDragEnd"
+                              @click.stop="selectTileWidget(childWidget, nestedTileIndex, tileWidget.id)"
+                              :class="[
+                                'flex items-center justify-between px-2 py-0.5 rounded cursor-move text-[10px] transition-all group',
+                                store.selectedWidgetId === tileWidget.id
+                                  ? 'bg-indigo-600 text-white'
+                                  : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400'
+                              ]"
+                            >
                             <span class="flex items-center gap-1 min-w-0 flex-1 pointer-events-none">
                               <Icon :icon="getWidgetIcon(tileWidget)" size="10" class="shrink-0" />
                               <span class="truncate">{{ tileWidget.text || tileWidget.type }}</span>
@@ -1393,6 +1531,7 @@ function getWidgetIcon(widget: Widget): string {
                             >
                               <Icon icon="delete" size="10" />
                             </button>
+                            </div>
                           </li>
                         </ul>
                       </li>
@@ -1443,19 +1582,30 @@ function getWidgetIcon(widget: Widget): string {
                   <li
                     v-for="childWidget in tile.widgets"
                     :key="childWidget.id"
-                    draggable="true"
-                    @dragstart="handleTileWidgetDragStart($event, widget, tileIndex, childWidget)"
-                    @dragover="handleTileWidgetDragOver($event, widget, tileIndex)"
-                    @drop="handleTileWidgetDrop($event, widget, tileIndex, childWidget)"
-                    @dragend="handleDragEnd"
-                    @click.stop="selectTileWidget(widget, tileIndex, childWidget.id)"
-                    :class="[
-                      'flex items-center justify-between px-2 py-1 rounded cursor-move text-[11px] transition-all group',
-                      store.selectedWidgetId === childWidget.id
-                        ? 'bg-indigo-600 text-white'
-                        : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400'
-                    ]"
+                    class="relative"
                   >
+                    <!-- Drop indicator line (shown when reordering) -->
+                    <div
+                      v-if="dropIndicatorId === childWidget.id && isReordering && draggedItem?.type === 'tile-widget' && draggedItem?.parentId === widget.id && draggedItem?.tileIndex === tileIndex"
+                      :class="[
+                        'absolute left-0 right-0 h-0.5 bg-blue-500 pointer-events-none z-10',
+                        dropIndicatorPosition === 'before' ? '-top-0.5' : '-bottom-0.5'
+                      ]"
+                    />
+                    <div
+                      draggable="true"
+                      @dragstart="handleTileWidgetDragStart($event, widget, tileIndex, childWidget)"
+                      @dragover="handleTileWidgetDragOver($event, widget, tileIndex); handleTileWidgetReorderDragOver($event, childWidget.id)"
+                      @drop="handleTileWidgetDrop($event, widget, tileIndex, childWidget)"
+                      @dragend="handleDragEnd"
+                      @click.stop="selectTileWidget(widget, tileIndex, childWidget.id)"
+                      :class="[
+                        'flex items-center justify-between px-2 py-1 rounded cursor-move text-[11px] transition-all group',
+                        store.selectedWidgetId === childWidget.id
+                          ? 'bg-indigo-600 text-white'
+                          : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400'
+                      ]"
+                    >
                     <span class="flex items-center gap-1.5 min-w-0 flex-1 pointer-events-none">
                       <Icon :icon="getWidgetIcon(childWidget)" size="12" class="shrink-0" />
                       <span class="truncate">{{ childWidget.text || childWidget.type }}</span>
@@ -1467,6 +1617,7 @@ function getWidgetIcon(widget: Widget): string {
                     >
                       <Icon icon="delete" size="12" />
                     </button>
+                    </div>
                   </li>
                 </ul>
               </li>
