@@ -23,7 +23,11 @@ function handleImport() {
   }
   
   try {
-    store.importYAML(yamlInput.value)
+    const success = store.importYAML(yamlInput.value)
+    if (!success) {
+      errorMessage.value = store.importError || 'Failed to import YAML'
+      return
+    }
     store.showImportModal = false
     yamlInput.value = ''
     showConfirmation.value = false

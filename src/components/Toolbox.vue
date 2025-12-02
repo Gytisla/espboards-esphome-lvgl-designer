@@ -77,14 +77,14 @@ function handleDragStart(event: DragEvent, type: WidgetType) {
 <template>
   <aside
     :class="[
-      'bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col transition-all duration-300',
+      'bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col transition-all duration-300 overflow-hidden',
       isMobileModal ? 'w-full shrink' : 'shrink-0 h-screen',
       store.isToolboxVisible ? 'translate-x-0' : '-translate-x-full absolute'
     ]"
     :style="isMobileModal ? {} : { width: toolboxWidth + 'px' }"
   >
     <!-- Toolbox Header -->
-    <div class="px-3 py-5 border-b-2 border-gray-300 dark:border-gray-600 flex items-center" :class="isToolboxCollapsed ? 'justify-center' : 'justify-between'">
+    <div class="px-3 py-5 border-b-2 border-gray-300 dark:border-gray-600 flex items-center shrink-0" :class="isToolboxCollapsed ? 'justify-center' : 'justify-between'">
       <h2 v-if="!isToolboxCollapsed" class="text-sm font-semibold text-gray-700 dark:text-gray-200">
         Widgets
       </h2>
@@ -98,7 +98,7 @@ function handleDragStart(event: DragEvent, type: WidgetType) {
     </div>
     
     <!-- Collapsed View - Quick Widget Icons (draggable) -->
-    <div v-if="isToolboxCollapsed" class="flex-1 flex flex-col items-center gap-2 py-4 px-1 overflow-y-auto custom-scrollbar scroll-container">
+    <div v-if="isToolboxCollapsed" class="flex-1 flex flex-col items-center gap-2 py-4 px-1 pb-24 overflow-y-auto custom-scrollbar scroll-container min-h-0">
       <!-- Containers -->
       <button
         v-for="widgetType in ['tabview', 'tileview']"
@@ -149,7 +149,7 @@ function handleDragStart(event: DragEvent, type: WidgetType) {
     </div>
     
     <!-- Scrollable Widget Categories -->
-    <div v-if="!isToolboxCollapsed" class="flex-1 overflow-y-auto p-3 custom-scrollbar scroll-container">
+    <div v-if="!isToolboxCollapsed" class="flex-1 overflow-y-auto p-3 pb-24 custom-scrollbar scroll-container min-h-0">
       <!-- Helper Text -->
       <div class="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
         <p class="text-xs text-blue-700 dark:text-blue-300 font-medium mb-1">Drag & Drop</p>

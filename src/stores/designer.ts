@@ -110,12 +110,22 @@ export const useDesignerStore = defineStore('designer', () => {
   const canvasBgColor = computed({
     get: () => {
       const activeTab = canvasTabs.value.find(tab => tab.id === activeCanvasTabId.value)
-      return activeTab?.bg_color || '#111827'
+      const color = activeTab?.bg_color || '#111827'
+      // Convert 0x format to # format for UI display
+      if (typeof color === 'string' && (color.startsWith('0x') || color.startsWith('0X'))) {
+        return '#' + color.slice(2)
+      }
+      return color
     },
     set: (value: string) => {
       const activeTab = canvasTabs.value.find(tab => tab.id === activeCanvasTabId.value)
       if (activeTab) {
-        activeTab.bg_color = value
+        // Store in 0x format for ESPHome export
+        if (value.startsWith('#')) {
+          activeTab.bg_color = '0x' + value.slice(1)
+        } else {
+          activeTab.bg_color = value
+        }
       }
     }
   })
@@ -741,17 +751,49 @@ export const useDesignerStore = defineStore('designer', () => {
     try {
       const data = yaml.load(input) as any
       
-      if (data?.lvgl?.pages?.[0]?.widgets) {
+      if (data?.lvgl?.pages?.[0]) {
         const pageData = data.lvgl.pages[0]
+        const widgetConfigs = pageData.widgets || []
+        
+        // Clear widgets FIRST
         widgets.value = []
-        const widgetConfigs = pageData.widgets
+        
+        // Helper function to normalize color to 0x format for storage
+        const normalizeColorTo0x = (color: any): string | undefined => {
+          if (!color) return undefined
+          
+          // Convert to string if it's a number
+          const colorStr = typeof color === 'number' 
+            ? `0x${color.toString(16).toUpperCase().padStart(6, '0')}` 
+            : String(color)
+          
+          // If it's in # format, convert to 0x format
+          if (colorStr.startsWith('#')) {
+            return '0x' + colorStr.slice(1).toUpperCase()
+          }
+          
+          // If it's already in 0x format, ensure uppercase
+          if (colorStr.startsWith('0x') || colorStr.startsWith('0X')) {
+            return '0x' + colorStr.slice(2).toUpperCase()
+          }
+          
+          return colorStr
+        }
         
         // Import canvas properties if present
         const activeTab = canvasTabs.value.find(tab => tab.id === activeCanvasTabId.value)
         if (activeTab) {
-          if (pageData.bg_color) {
-            activeTab.bg_color = pageData.bg_color
+          // Import flags if present
+          if (pageData.flags && Array.isArray(pageData.flags)) {
+            activeTab.flags = pageData.flags
           }
+          
+          // Import bg_color if present - store in 0x format for ESPHome export
+          if (pageData.bg_color !== undefined) {
+            activeTab.bg_color = normalizeColorTo0x(pageData.bg_color)
+          }
+          
+          // Import bg_opa if present
           if (pageData.bg_opa !== undefined) {
             // Handle both "100%" and 100 formats
             const opaValue = typeof pageData.bg_opa === 'string' 
@@ -759,13 +801,14 @@ export const useDesignerStore = defineStore('designer', () => {
               : pageData.bg_opa
             activeTab.bg_opa = opaValue
           }
+          
+          // Import pad_all if present
           if (pageData.pad_all !== undefined) {
             activeTab.pad_all = pageData.pad_all
           }
         }
         
         let maxIdNum = -1
-
 
         function buildWidgetTree(widgetConfig: any): any {
           const type = Object.keys(widgetConfig)[0] as WidgetType
@@ -808,7 +851,6 @@ export const useDesignerStore = defineStore('designer', () => {
           return { type, ...widgetProps }
         }
 
-        widgets.value = []
         widgetConfigs.forEach((widgetConfig: any) => {
           const tree = buildWidgetTree(widgetConfig)
           if (tree) {
@@ -825,9 +867,10 @@ export const useDesignerStore = defineStore('designer', () => {
         selectedWidgetId.value = null
         showImportModal.value = false
         yamlInput.value = ''
+        saveState()
         return true
       } else {
-        importError.value = 'Invalid YAML structure. Expected lvgl -> pages -> widgets.'
+        importError.value = 'Invalid YAML structure. Expected lvgl -> pages.'
         return false
       }
     } catch (e: any) {

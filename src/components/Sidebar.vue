@@ -1285,7 +1285,7 @@ function getWidgetIcon(widget: Widget): string {
 </script>
 
 <template>
-  <aside class="bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700 flex shrink-0 overflow-hidden relative" :style="{ width: sidebarWidth + 'px' }">
+  <aside class="bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700 flex shrink-0 overflow-hidden relative h-screen" :style="{ width: sidebarWidth + 'px' }">
     <!-- Horizontal Resize Handle (Left Edge) -->
     <div
       @mousedown="startResizeWidth"
@@ -1667,7 +1667,7 @@ function getWidgetIcon(widget: Widget): string {
         </h2>
       </div>
       
-      <div v-if="!store.selectedWidget" class="flex-1 flex flex-col p-4 space-y-4 overflow-y-auto custom-scrollbar">
+      <div v-if="!store.selectedWidget" class="flex-1 flex flex-col p-4 pb-24 space-y-4 overflow-y-auto custom-scrollbar min-h-0">
         <div>
           <h3 class="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-4">Canvas Properties</h3>
           
@@ -1692,10 +1692,17 @@ function getWidgetIcon(widget: Widget): string {
             <div class="flex gap-2">
               <input
                 type="color"
-                :value="activeTab?.bg_color || '#111827'"
+                :value="(() => {
+                  const color = activeTab?.bg_color || '#111827'
+                  if (typeof color === 'string' && (color.startsWith('0x') || color.startsWith('0X'))) {
+                    return '#' + color.slice(2)
+                  }
+                  return color
+                })()"
                 @input="(e) => {
                   if (activeTab) {
-                    activeTab.bg_color = (e.target as HTMLInputElement).value
+                    const value = (e.target as HTMLInputElement).value
+                    activeTab.bg_color = value.startsWith('#') ? '0x' + value.slice(1) : value
                     store.saveState()
                   }
                 }"
@@ -1705,10 +1712,17 @@ function getWidgetIcon(widget: Widget): string {
               />
               <input
                 type="text"
-                :value="activeTab?.bg_color || '#111827'"
+                :value="(() => {
+                  const color = activeTab?.bg_color || '#111827'
+                  if (typeof color === 'string' && (color.startsWith('0x') || color.startsWith('0X'))) {
+                    return '#' + color.slice(2)
+                  }
+                  return color
+                })()"
                 @input="(e) => {
                   if (activeTab) {
-                    activeTab.bg_color = (e.target as HTMLInputElement).value
+                    const value = (e.target as HTMLInputElement).value
+                    activeTab.bg_color = value.startsWith('#') ? '0x' + value.slice(1) : value
                     store.saveState()
                   }
                 }"
@@ -1844,7 +1858,7 @@ function getWidgetIcon(widget: Widget): string {
         </div>
       </div>
       
-      <form v-else @submit.prevent class="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+      <form v-else @submit.prevent class="flex-1 overflow-y-auto p-4 pb-24 space-y-3 custom-scrollbar min-h-0">
         <!-- Position -->
         <div class="grid grid-cols-2 gap-2">
           <div>
