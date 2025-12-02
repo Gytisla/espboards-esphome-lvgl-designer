@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import type { Widget, WidgetType } from '@/types/widget'
 import { widgetRegistry, getWidget } from '@/widgets'
 import yaml from 'js-yaml'
@@ -38,6 +38,7 @@ export const useDesignerStore = defineStore('designer', () => {
       currentHistoryIndex: -1
     }
   ])
+  // Initialize activeCanvasTabId - will be set by loadState()
   const activeCanvasTabId = ref('canvas_1')
   const nextCanvasId = ref(2)
   const maxHistorySize = 50
@@ -922,7 +923,12 @@ export const useDesignerStore = defineStore('designer', () => {
       console.error('Failed to load state:', e)
     }
   }
-  
+
+  // Save state when active tab changes
+  watch(activeCanvasTabId, () => {
+    saveState()
+  })
+
   return {
     // State
     canvasTabs,
