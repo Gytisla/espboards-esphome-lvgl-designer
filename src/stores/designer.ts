@@ -20,6 +20,11 @@ export interface CanvasTab {
   canvasWidth: number
   canvasHeight: number
   canvasResolution: string
+  // Canvas styling
+  bg_color?: string // Canvas background color
+  bg_opa?: number // Canvas background opacity (0-100)
+  pad_all?: number // Canvas padding (all sides)
+  flags?: string[] // Canvas flags (e.g., ['SCROLLABLE'])
   historyStack?: HistorySnapshot[] // History for this specific tab
   currentHistoryIndex?: number // Current position in history for this tab
 }
@@ -97,6 +102,58 @@ export const useDesignerStore = defineStore('designer', () => {
       const activeTab = canvasTabs.value.find(tab => tab.id === activeCanvasTabId.value)
       if (activeTab) {
         activeTab.canvasHeight = value
+      }
+    }
+  })
+
+  const canvasBgColor = computed({
+    get: () => {
+      const activeTab = canvasTabs.value.find(tab => tab.id === activeCanvasTabId.value)
+      return activeTab?.bg_color || '#111827'
+    },
+    set: (value: string) => {
+      const activeTab = canvasTabs.value.find(tab => tab.id === activeCanvasTabId.value)
+      if (activeTab) {
+        activeTab.bg_color = value
+      }
+    }
+  })
+
+  const canvasBgOpa = computed({
+    get: () => {
+      const activeTab = canvasTabs.value.find(tab => tab.id === activeCanvasTabId.value)
+      return activeTab?.bg_opa ?? 100
+    },
+    set: (value: number) => {
+      const activeTab = canvasTabs.value.find(tab => tab.id === activeCanvasTabId.value)
+      if (activeTab) {
+        activeTab.bg_opa = value
+      }
+    }
+  })
+
+  const canvasPadding = computed({
+    get: () => {
+      const activeTab = canvasTabs.value.find(tab => tab.id === activeCanvasTabId.value)
+      return activeTab?.pad_all ?? 0
+    },
+    set: (value: number) => {
+      const activeTab = canvasTabs.value.find(tab => tab.id === activeCanvasTabId.value)
+      if (activeTab) {
+        activeTab.pad_all = value
+      }
+    }
+  })
+
+  const canvasFlags = computed({
+    get: () => {
+      const activeTab = canvasTabs.value.find(tab => tab.id === activeCanvasTabId.value)
+      return activeTab?.flags ?? []
+    },
+    set: (value: string[]) => {
+      const activeTab = canvasTabs.value.find(tab => tab.id === activeCanvasTabId.value)
+      if (activeTab) {
+        activeTab.flags = value
       }
     }
   })
@@ -623,7 +680,34 @@ export const useDesignerStore = defineStore('designer', () => {
   
   function generateYAML(): string {
       // Export only active canvas tab
-      let yamlString = 'lvgl:\n  pages:\n    - id: main_page\n      widgets:'
+      let yamlString = 'lvgl:\n  pages:\n    - id: main_page\n'
+      
+      const activeTab = canvasTabs.value.find(tab => tab.id === activeCanvasTabId.value)
+      
+      // Export canvas flags (only if explicitly set)
+      if (activeTab?.flags && activeTab.flags.length > 0) {
+        yamlString += '      flags:\n'
+        activeTab.flags.forEach(flag => {
+          yamlString += `        - ${flag}\n`
+        })
+      }
+      
+      // Export bg_color (only if explicitly set)
+      if (activeTab?.bg_color !== undefined) {
+        yamlString += '      bg_color: ' + activeTab.bg_color + '\n'
+      }
+      
+      // Export bg_opa (only if explicitly set)
+      if (activeTab?.bg_opa !== undefined) {
+        yamlString += '      bg_opa: ' + activeTab.bg_opa + '%\n'
+      }
+      
+      // Export pad_all (only if explicitly set and greater than 0)
+      if (activeTab?.pad_all !== undefined && activeTab.pad_all > 0) {
+        yamlString += '      pad_all: ' + activeTab.pad_all + '\n'
+      }
+      
+      yamlString += '      widgets:'
       
       if (widgets.value.length === 0) {
         yamlString += '\n        # No widgets placed yet'
@@ -655,8 +739,27 @@ export const useDesignerStore = defineStore('designer', () => {
       const data = yaml.load(input) as any
       
       if (data?.lvgl?.pages?.[0]?.widgets) {
+        const pageData = data.lvgl.pages[0]
         widgets.value = []
-        const widgetConfigs = data.lvgl.pages[0].widgets
+        const widgetConfigs = pageData.widgets
+        
+        // Import canvas properties if present
+        const activeTab = canvasTabs.value.find(tab => tab.id === activeCanvasTabId.value)
+        if (activeTab) {
+          if (pageData.bg_color) {
+            activeTab.bg_color = pageData.bg_color
+          }
+          if (pageData.bg_opa !== undefined) {
+            // Handle both "100%" and 100 formats
+            const opaValue = typeof pageData.bg_opa === 'string' 
+              ? parseInt(pageData.bg_opa) 
+              : pageData.bg_opa
+            activeTab.bg_opa = opaValue
+          }
+          if (pageData.pad_all !== undefined) {
+            activeTab.pad_all = pageData.pad_all
+          }
+        }
         
         let maxIdNum = -1
 
@@ -953,6 +1056,10 @@ export const useDesignerStore = defineStore('designer', () => {
     canvasResolution,
     canvasWidth,
     canvasHeight,
+    canvasBgColor,
+    canvasBgOpa,
+    canvasPadding,
+    canvasFlags,
     currentScale,
     isToolboxVisible,
     showYamlModal,

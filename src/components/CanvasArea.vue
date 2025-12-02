@@ -1169,6 +1169,9 @@ function getWidgetStyle(widget: Widget) {
         :style="{
           width: store.canvasWidth + 'px',
           height: store.canvasHeight + 'px',
+          padding: store.canvasPadding + 'px',
+          backgroundColor: store.canvasBgColor,
+          opacity: store.canvasBgOpa / 100,
           transform: `translate(${panOffsetX}px, ${panOffsetY}px) scale(${store.currentScale * zoomLevel})`,
           transformOrigin: 'center center',
           backgroundImage: 'linear-gradient(to right, rgba(99, 102, 241, 0.1) 1px, transparent 1px), linear-gradient(to bottom, rgba(99, 102, 241, 0.1) 1px, transparent 1px)',
@@ -1178,8 +1181,27 @@ function getWidgetStyle(widget: Widget) {
         @dragleave="handleCanvasDragLeave"
         @drop="handleCanvasDrop"
         @click="$event.target === $event.currentTarget && store.selectWidget(null)"
-        class="relative bg-gray-900 border-2 border-gray-700 shadow-2xl"
+        class="relative border-2 border-gray-700 shadow-2xl"
       >
+        <!-- Padding Visual Indicator (shown when padding > 0) -->
+        <div
+          v-if="store.canvasPadding > 0"
+          class="absolute inset-0 pointer-events-none"
+          :style="{
+            border: `${store.canvasPadding}px dashed rgba(99, 102, 241, 0.3)`,
+            boxSizing: 'border-box'
+          }"
+        />
+        
+        <!-- Padding Labels (shown when padding > 0) -->
+        <div
+          v-if="store.canvasPadding > 0"
+          class="absolute text-[10px] font-medium text-indigo-400/60 pointer-events-none select-none"
+          style="top: 4px; left: 4px; z-index: 1"
+        >
+          {{ store.canvasPadding }}px
+        </div>
+
         <!-- Widgets -->
         <div
           v-for="widget in store.widgets"

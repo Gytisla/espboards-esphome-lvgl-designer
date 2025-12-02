@@ -7,6 +7,11 @@ import Icon from './Icon.vue'
 
 const store = useDesignerStore()
 
+// Get active canvas tab
+const activeTab = computed(() => {
+  return store.canvasTabs.find(tab => tab.id === store.activeCanvasTabId)
+})
+
 // Vertical resizer functionality (between Elements and Properties)
 const elementsHeight = ref(400) // Default height in pixels
 const isResizing = ref(false)
@@ -1294,25 +1299,22 @@ function getWidgetIcon(widget: Widget): string {
         </div>
       
       <div class="h-[calc(100%-49px)] overflow-y-auto custom-scrollbar">
-        <div
-          v-if="store.widgetCount === 0"
-          class="text-xs text-gray-400 dark:text-gray-500 italic text-center py-8 px-4"
-        >
-          No widgets yet. Drag from toolbox!
-        </div>
-        <ul v-else class="p-2 space-y-1">
+        <ul class="p-2 space-y-1">
           <!-- Root container header -->
           <li class="mb-2">
             <div
               @dragover.prevent="hoveredDropTargetId = '__root__'; handleWidgetDragOver($event)"
               @drop="handleRootDrop($event)"
+              @click="store.selectWidget(null)"
               :class="[
-                'flex items-center gap-2 p-2 rounded-lg text-xs font-semibold transition-all',
-                hoveredDropTargetId === '__root__'
+                'flex items-center gap-2 p-2 rounded-lg text-xs font-semibold transition-all cursor-pointer',
+                store.selectedWidgetId === null
+                  ? 'bg-indigo-600 text-white'
+                  : hoveredDropTargetId === '__root__'
                   ? 'bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100 border-2 border-green-500 ring-2 ring-green-400'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-dashed border-gray-300 dark:border-gray-600'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-dashed border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700'
               ]"
-              title="Root container - all widgets must be children of this"
+              title="Root container - click to view canvas properties"
             >
               <Icon icon="dashboard" size="16" class="shrink-0 pointer-events-none" />
               <span class="pointer-events-none">Root</span>
@@ -1320,8 +1322,8 @@ function getWidgetIcon(widget: Widget): string {
             </div>
           </li>
 
-          <!-- Root widgets (shown as children of root) -->
-          <ul class="ml-2 space-y-1 border-l-2 border-gray-300 dark:border-gray-700 pl-2">
+          <!-- Root widgets (shown as children of root) - only shown if there are widgets -->
+          <ul v-if="store.widgetCount > 0" class="ml-2 space-y-1 border-l-2 border-gray-300 dark:border-gray-700 pl-2">
             <li v-for="widget in store.widgets" :key="widget.id" class="relative">
               <!-- Drop indicator line (shown when reordering) -->
               <div
@@ -1657,10 +1659,180 @@ function getWidgetIcon(widget: Widget): string {
         </h2>
       </div>
       
-      <div v-if="!store.selectedWidget" class="flex-1 flex items-center justify-center p-4">
-        <p class="text-xs text-gray-400 dark:text-gray-500 italic text-center">
-          Select a widget to edit properties
-        </p>
+      <div v-if="!store.selectedWidget" class="flex-1 flex flex-col p-4 space-y-4 overflow-y-auto custom-scrollbar">
+        <div>
+          <h3 class="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-4">Canvas Properties</h3>
+          
+          <!-- Canvas Background Color -->
+          <div class="mb-4">
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-xs font-medium text-gray-600 dark:text-gray-400">Background Color</label>
+              <button
+                v-if="activeTab?.bg_color !== undefined"
+                @click="() => {
+                  if (activeTab) {
+                    activeTab.bg_color = undefined
+                    store.saveState()
+                  }
+                }"
+                class="text-xs px-2 py-0.5 text-gray-500 hover:text-red-400 hover:bg-red-900/20 rounded transition-colors"
+                title="Reset to default (remove from YAML)"
+              >
+                Reset
+              </button>
+            </div>
+            <div class="flex gap-2">
+              <input
+                type="color"
+                :value="activeTab?.bg_color || '#111827'"
+                @input="(e) => {
+                  if (activeTab) {
+                    activeTab.bg_color = (e.target as HTMLInputElement).value
+                    store.saveState()
+                  }
+                }"
+                class="w-10 h-9 rounded border border-gray-600 bg-gray-800 cursor-pointer"
+                title="Pick canvas background color"
+              />
+              <input
+                type="text"
+                :value="activeTab?.bg_color || '#111827'"
+                @input="(e) => {
+                  if (activeTab) {
+                    activeTab.bg_color = (e.target as HTMLInputElement).value
+                    store.saveState()
+                  }
+                }"
+                placeholder="#111827"
+                class="flex-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono"
+              />
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-500 mt-1" :class="{ 'text-indigo-400': activeTab?.bg_color !== undefined }">
+              {{ activeTab?.bg_color !== undefined ? '(custom - will be exported)' : '(using default)' }}
+            </p>
+          </div>
+
+          <!-- Canvas Background Opacity -->
+          <div class="mb-4">
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-xs font-medium text-gray-600 dark:text-gray-400">
+                Background Opacity: {{ activeTab?.bg_opa !== undefined ? activeTab.bg_opa : 100 }}%
+              </label>
+              <button
+                v-if="activeTab?.bg_opa !== undefined"
+                @click="() => {
+                  if (activeTab) {
+                    activeTab.bg_opa = undefined
+                    store.saveState()
+                  }
+                }"
+                class="text-xs px-2 py-0.5 text-gray-500 hover:text-red-400 hover:bg-red-900/20 rounded transition-colors"
+                title="Reset to default (remove from YAML)"
+              >
+                Reset
+              </button>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              :value="activeTab?.bg_opa !== undefined ? activeTab.bg_opa : 100"
+              @input="(e) => {
+                if (activeTab) {
+                  activeTab.bg_opa = Number((e.target as HTMLInputElement).value)
+                  store.saveState()
+                }
+              }"
+              class="w-full h-2 bg-gray-300 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer"
+              title="Canvas background opacity"
+            />
+            <p class="text-xs text-gray-500 dark:text-gray-500 mt-1" :class="{ 'text-indigo-400': activeTab?.bg_opa !== undefined }">
+              {{ activeTab?.bg_opa !== undefined ? '(custom - will be exported)' : '(using default)' }}
+            </p>
+          </div>
+
+          <!-- Canvas Padding -->
+          <div class="mb-4">
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-xs font-medium text-gray-600 dark:text-gray-400">Padding (all sides)</label>
+              <button
+                v-if="activeTab?.pad_all !== undefined && activeTab.pad_all > 0"
+                @click="() => {
+                  if (activeTab) {
+                    activeTab.pad_all = undefined
+                    store.saveState()
+                  }
+                }"
+                class="text-xs px-2 py-0.5 text-gray-500 hover:text-red-400 hover:bg-red-900/20 rounded transition-colors"
+                title="Reset to default (remove from YAML)"
+              >
+                Reset
+              </button>
+            </div>
+            <input
+              type="number"
+              min="0"
+              max="50"
+              :value="activeTab?.pad_all !== undefined ? activeTab.pad_all : 0"
+              @input="(e) => {
+                if (activeTab) {
+                  const val = Number((e.target as HTMLInputElement).value)
+                  activeTab.pad_all = val > 0 ? val : undefined
+                  store.saveState()
+                }
+              }"
+              class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+            <p class="text-xs text-gray-500 dark:text-gray-500 mt-1" :class="{ 'text-indigo-400': activeTab?.pad_all !== undefined && activeTab.pad_all > 0 }">
+              {{ activeTab?.pad_all !== undefined && activeTab.pad_all > 0 ? `(custom - will be exported as ${activeTab.pad_all}px)` : '(using default)' }}
+            </p>
+          </div>
+
+          <!-- Canvas Flags -->
+          <div class="pt-4 border-t border-gray-300 dark:border-gray-700">
+            <div class="flex items-center justify-between mb-2">
+              <label class="block text-xs font-medium text-gray-600 dark:text-gray-400">Flags</label>
+              <button
+                v-if="activeTab?.flags && activeTab.flags.length > 0"
+                @click="() => {
+                  if (activeTab) {
+                    activeTab.flags = undefined
+                    store.saveState()
+                  }
+                }"
+                class="text-xs px-2 py-0.5 text-gray-500 hover:text-red-400 hover:bg-red-900/20 rounded transition-colors"
+                title="Reset to default (remove from YAML)"
+              >
+                Reset
+              </button>
+            </div>
+            <div class="space-y-2">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  :checked="activeTab?.flags?.includes('SCROLLABLE') || false"
+                  @change="(e) => {
+                    if (!activeTab) return
+                    const isChecked = (e.target as HTMLInputElement).checked
+                    let flags = activeTab.flags ? [...activeTab.flags] : []
+                    if (isChecked && !flags.includes('SCROLLABLE')) {
+                      flags.push('SCROLLABLE')
+                    } else if (!isChecked && flags.includes('SCROLLABLE')) {
+                      flags = flags.filter(f => f !== 'SCROLLABLE')
+                    }
+                    activeTab.flags = flags.length > 0 ? flags : undefined
+                    store.saveState()
+                  }"
+                  class="w-4 h-4 text-indigo-600 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
+                />
+                <span class="text-xs text-gray-600 dark:text-gray-400">SCROLLABLE</span>
+              </label>
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-500 mt-1" :class="{ 'text-indigo-400': activeTab?.flags && activeTab.flags.length > 0 }">
+              {{ activeTab?.flags && activeTab.flags.length > 0 ? '(custom - will be exported)' : '(using default - not exported)' }}
+            </p>
+          </div>
+        </div>
       </div>
       
       <form v-else @submit.prevent class="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
