@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useDesignerStore } from '../stores/designer'
 import type { Widget } from '../types/widget'
 import WidgetRenderer from './WidgetRenderer.vue'
@@ -88,6 +88,33 @@ function resetView() {
   zoomLevel.value = 1
 }
 
+function fitCanvasToView() {
+  const viewport = document.getElementById('canvas-viewport')
+  if (!viewport) return
+  
+  const viewportRect = viewport.getBoundingClientRect()
+  const viewportWidth = viewportRect.width - 32 // Account for padding
+  const viewportHeight = viewportRect.height - 32
+  
+  // The canvas DOM element is 2048x2048 pixels
+  // But the transform applies: scale(currentScale * zoomLevel)
+  // So the visual size on screen is: 2048 * currentScale * zoomLevel
+  // To fit in viewport: viewportWidth >= 2048 * currentScale * zoomLevel
+  // Therefore: zoomLevel <= viewportWidth / (2048 * currentScale)
+  
+  const effectiveCanvasWidth = store.canvasWidth * store.currentScale
+  const effectiveCanvasHeight = store.canvasHeight * store.currentScale
+  
+  // Calculate zoom scale needed to fit canvas in viewport
+  const scaleX = viewportWidth / effectiveCanvasWidth
+  const scaleY = viewportHeight / effectiveCanvasHeight
+  const fitZoom = Math.min(scaleX, scaleY) * 0.95 // 0.95 for small margin
+  
+  zoomLevel.value = Math.max(minZoom, Math.min(maxZoom, fitZoom))
+  panOffsetX.value = 0
+  panOffsetY.value = 0
+}
+
 // Hover tracking for drop targets
 const hoveredDropTargetId = ref<string | null>(null)
 
@@ -137,6 +164,62 @@ function cancelCloseTab() {
   showCloseConfirmation.value = false
   tabToClose.value = null
   tabToCloseName.value = ''
+}
+
+// Custom resolution dialog
+const showCustomResolutionDialog = ref(false)
+const customResolutionWidth = ref('320')
+const customResolutionHeight = ref('240')
+const customResolutionError = ref('')
+
+function openCustomResolutionDialog() {
+  // Reset to current values
+  const parts = store.canvasResolution.split('x')
+  customResolutionWidth.value = parts[0] || '320'
+  customResolutionHeight.value = parts[1] || '240'
+  customResolutionError.value = ''
+  showCustomResolutionDialog.value = true
+}
+
+function validateCustomResolution(): boolean {
+  const width = parseInt(customResolutionWidth.value)
+  const height = parseInt(customResolutionHeight.value)
+  
+  if (isNaN(width) || isNaN(height)) {
+    customResolutionError.value = 'Please enter valid numbers'
+    return false
+  }
+  
+  if (width < 1 || height < 1) {
+    customResolutionError.value = 'Width and height must be greater than 0'
+    return false
+  }
+  
+  if (width > 1024 || height > 1024) {
+    customResolutionError.value = 'Maximum resolution is 1024×1024'
+    return false
+  }
+  
+  return true
+}
+
+function applyCustomResolution() {
+  if (!validateCustomResolution()) return
+  
+  const newResolution = `${customResolutionWidth.value}x${customResolutionHeight.value}`
+  store.canvasResolution = newResolution
+  store.updateCanvasSize()
+  showCustomResolutionDialog.value = false
+  
+  // Automatically fit canvas to view after resolution change
+  nextTick(() => {
+    fitCanvasToView()
+  })
+}
+
+function cancelCustomResolution() {
+  showCustomResolutionDialog.value = false
+  customResolutionError.value = ''
 }
 
 // Keyboard shortcuts
@@ -874,12 +957,21 @@ function getWidgetStyle(widget: Widget) {
           <label class="text-xs font-medium text-gray-600 dark:text-gray-400">Resolution:</label>
           <select
             v-model="store.canvasResolution"
-            @change="store.updateCanvasSize()"
+            @change="(e) => {
+              const target = e.target as HTMLSelectElement
+              if (target.value === 'custom') {
+                openCustomResolutionDialog()
+                target.value = store.canvasResolution
+              } else {
+                store.updateCanvasSize()
+              }
+            }"
             class="px-2 py-1 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           >
             <option v-for="res in resolutions" :key="res" :value="res">
               {{ res }}
             </option>
+            <option value="custom">Custom resolution...</option>
           </select>
         </div>
       </div>
@@ -996,6 +1088,14 @@ function getWidgetStyle(widget: Widget) {
         >
           Reset
         </button>
+        
+        <button
+          @click="fitCanvasToView"
+          class="px-2 py-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white text-xs rounded transition-colors"
+          title="Fit canvas to viewport"
+        >
+          Fit
+        </button>
       </div>
       
       <div
@@ -1089,6 +1189,82 @@ function getWidgetStyle(widget: Widget) {
           >
             <Icon icon="delete" size="16" />
             Close Tab
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Custom Resolution Dialog -->
+    <div
+      v-if="showCustomResolutionDialog"
+      class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      @click.self="cancelCustomResolution"
+    >
+      <div class="bg-white dark:bg-gray-900 rounded-lg shadow-2xl p-6 w-full max-w-sm">
+        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Custom Resolution</h3>
+        
+        <div class="space-y-4">
+          <!-- Width Input -->
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Width (pixels)
+            </label>
+            <input
+              v-model="customResolutionWidth"
+              type="number"
+              min="1"
+              max="1024"
+              class="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="320"
+              @keyup.enter="applyCustomResolution"
+            />
+          </div>
+          
+          <!-- Height Input -->
+          <div>
+            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Height (pixels)
+            </label>
+            <input
+              v-model="customResolutionHeight"
+              type="number"
+              min="1"
+              max="1024"
+              class="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="240"
+              @keyup.enter="applyCustomResolution"
+            />
+          </div>
+          
+          <!-- Error Message -->
+          <div v-if="customResolutionError" class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded">
+            <p class="text-sm text-red-600 dark:text-red-400">
+              <Icon icon="alert-circle" size="16" class="inline mr-1" />
+              {{ customResolutionError }}
+            </p>
+          </div>
+          
+          <!-- Validation Info -->
+          <div class="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded">
+            <p class="text-xs text-blue-600 dark:text-blue-400">
+              Maximum resolution: 1024 × 1024 pixels
+            </p>
+          </div>
+        </div>
+        
+        <!-- Buttons -->
+        <div class="flex gap-3 mt-6">
+          <button
+            @click="cancelCustomResolution"
+            class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            @click="applyCustomResolution"
+            class="flex-1 px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
+          >
+            Apply
           </button>
         </div>
       </div>
