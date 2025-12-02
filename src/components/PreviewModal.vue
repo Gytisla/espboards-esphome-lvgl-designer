@@ -261,7 +261,7 @@ function resetZoom() {
     >
       <div
         v-if="store.showPreviewModal"
-        class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        class="fixed inset-0 bg-black/10 backdrop-blur-md z-50 flex items-center justify-center p-4"
         @click.self="handleClose"
       >
         <div class="w-full h-full max-w-[95vw] max-h-[95vh] bg-white dark:bg-gray-900 rounded-lg shadow-2xl flex flex-col overflow-hidden">

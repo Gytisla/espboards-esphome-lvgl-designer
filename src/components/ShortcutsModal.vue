@@ -27,7 +27,7 @@ const shortcuts = [
     class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
     @click.self="store.showShortcutsModal = false"
   >
-    <div class="bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-300 dark:border-gray-700 w-full max-w-lg overflow-auto">
+    <div class="bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-300 dark:border-gray-700 w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
       <!-- Header -->
       <div class="flex items-center justify-between p-4 border-b border-gray-300 dark:border-gray-700">
         <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
@@ -43,7 +43,7 @@ const shortcuts = [
       </div>
 
       <!-- Content -->
-      <div class="p-4">
+      <div class="p-4 overflow-auto flex-1">
         <table class="w-full">
           <tbody>
             <tr
@@ -67,7 +67,7 @@ const shortcuts = [
       </div>
 
       <!-- Footer -->
-      <div class="flex items-center justify-end p-4 border-t border-gray-300 dark:border-gray-700">
+      <div class="flex items-center justify-end p-4 border-t border-gray-300 dark:border-gray-700 shrink-0">
         <button
           @click="store.showShortcutsModal = false"
           class="px-4 py-2 bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
