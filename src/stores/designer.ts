@@ -160,8 +160,35 @@ export const useDesignerStore = defineStore('designer', () => {
     
     return findWidget(widgets.value)
   })
+
+  // Recursively count all widgets including nested ones
+  const countAllWidgets = (widgetList: Widget[]): number => {
+    let count = 0
+    for (const widget of widgetList) {
+      count++ // Count the widget itself
+      
+      // Count widgets in tabview tabs
+      if (widget.tabs && Array.isArray(widget.tabs)) {
+        for (const tab of widget.tabs) {
+          if (tab.widgets && Array.isArray(tab.widgets)) {
+            count += countAllWidgets(tab.widgets)
+          }
+        }
+      }
+      
+      // Count widgets in tileview tiles
+      if (widget.tiles && Array.isArray(widget.tiles)) {
+        for (const tile of widget.tiles) {
+          if (tile.widgets && Array.isArray(tile.widgets)) {
+            count += countAllWidgets(tile.widgets)
+          }
+        }
+      }
+    }
+    return count
+  }
   
-  const widgetCount = computed(() => widgets.value.length)
+  const widgetCount = computed(() => countAllWidgets(widgets.value))
   
   const generatedYAML = computed(() => generateYAML())
   
