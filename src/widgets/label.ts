@@ -1,6 +1,6 @@
 import type { WidgetPlugin } from './types'
 import type { Widget } from '../types/widget'
-import { convertHexColor } from './utils'
+import { convertHexColorToLambda } from './utils'
 
 export const labelWidget: WidgetPlugin = {
   type: 'label',
@@ -39,8 +39,8 @@ export const labelWidget: WidgetPlugin = {
   generateYAML: (widget: Widget, indent: string): string => {
     let yaml = ''
     if (widget.text) yaml += `${indent}text: "${widget.text}"\n`
-    if (widget.text_color) yaml += `${indent}text_color: ${convertHexColor(widget.text_color)}\n`
-    if (widget.bg_color) yaml += `${indent}bg_color: ${convertHexColor(widget.bg_color)}\n`
+    if (widget.text_color) yaml += `${indent}text_color: ${convertHexColorToLambda(widget.text_color)}\n`
+    if (widget.bg_color) yaml += `${indent}bg_color: ${convertHexColorToLambda(widget.bg_color)}\n`
     return yaml
   },
 }

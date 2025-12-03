@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import type { Widget, WidgetType } from '@/types/widget'
 import { widgetRegistry, getWidget } from '@/widgets'
-import { convertHexColor } from '@/widgets/utils'
+import { convertHexColor, convertHexColorToLambda } from '@/widgets/utils'
 import yaml from 'js-yaml'
 
 const STORAGE_KEY = 'lvglDesignerState'
@@ -625,7 +625,13 @@ export const useDesignerStore = defineStore('designer', () => {
         yamlString += `${propIndent}  - name: "${tab.name}"\n`
         if (tab.widgets && tab.widgets.length > 0) {
           yamlString += `${propIndent}    widgets:\n`
-          tab.widgets.forEach((childWidget) => {
+          // Sort tab widgets by z-index
+          const sortedTabWidgets = [...tab.widgets].sort((a, b) => {
+            const zIndexA = a.zIndex || 0
+            const zIndexB = b.zIndex || 0
+            return zIndexA - zIndexB
+          })
+          sortedTabWidgets.forEach((childWidget) => {
             yamlString += generateNestedWidgetYAML(childWidget, propIndent + '      ')
           })
         }
@@ -707,7 +713,7 @@ export const useDesignerStore = defineStore('designer', () => {
       
       // Export bg_color (only if explicitly set)
       if (activeTab?.bg_color !== undefined) {
-        yamlString += '      bg_color: ' + convertHexColor(activeTab.bg_color) + '\n'
+        yamlString += '      bg_color: ' + convertHexColorToLambda(activeTab.bg_color) + '\n'
       }
       
       // Export bg_opa (only if explicitly set)
@@ -725,7 +731,15 @@ export const useDesignerStore = defineStore('designer', () => {
       if (widgets.value.length === 0) {
         yamlString += '\n        # No widgets placed yet'
       } else {
-        widgets.value.forEach((widget) => {
+        // Sort widgets by z-index for proper stacking order in exported YAML
+        // Lower z-index appears first (bottom), higher z-index appears last (top)
+        const sortedWidgets = [...widgets.value].sort((a, b) => {
+          const zIndexA = a.zIndex || 0
+          const zIndexB = b.zIndex || 0
+          return zIndexA - zIndexB
+        })
+        
+        sortedWidgets.forEach((widget) => {
           yamlString += '\n'
           yamlString += generateNestedWidgetYAML(widget, '        ')
         })
@@ -749,7 +763,19 @@ export const useDesignerStore = defineStore('designer', () => {
     const input = yamlText || yamlInput.value
     importError.value = ''
     try {
-      const data = yaml.load(input) as any
+      // Create a custom YAML loader that handles ESPHome's !lambda tag
+      const customYaml = yaml as any
+      const schema = customYaml.DEFAULT_SCHEMA.extend([
+        new customYaml.Type('!lambda', {
+          kind: 'scalar',
+          construct: function(data: any) {
+            // Return the lambda string as-is so we can extract colors from it
+            return data
+          }
+        })
+      ])
+      
+      const data = yaml.load(input, { schema }) as any
       
       if (data?.lvgl?.pages?.[0]) {
         const pageData = data.lvgl.pages[0]
@@ -763,9 +789,18 @@ export const useDesignerStore = defineStore('designer', () => {
           if (!color) return undefined
           
           // Convert to string if it's a number
-          const colorStr = typeof color === 'number' 
+          let colorStr = typeof color === 'number' 
             ? `0x${color.toString(16).toUpperCase().padStart(6, '0')}` 
             : String(color)
+          
+          // Handle lambda format: !lambda 'return lv_color_hex(0xRRGGBB);'
+          // Extract the hex value from the lambda
+          if (colorStr.includes('lv_color_hex')) {
+            const hexMatch = colorStr.match(/lv_color_hex\((0x[0-9a-fA-F]{6})\)/i)
+            if (hexMatch && hexMatch[1]) {
+              colorStr = hexMatch[1]
+            }
+          }
           
           // If it's in # format, convert to 0x format
           if (colorStr.startsWith('#')) {
@@ -817,6 +852,37 @@ export const useDesignerStore = defineStore('designer', () => {
 
           // Clone props to avoid mutation
           const widgetProps = { ...props }
+
+          // Normalize all color properties to 0x format
+          const colorProps = [
+            'bg_color', 'text_color', 'border_color', 'line_color', 'arc_color',
+            'color', 'light_color', 'dark_color', 'shadow_color', 'outline_color'
+          ]
+          colorProps.forEach(prop => {
+            if (widgetProps[prop] !== undefined) {
+              widgetProps[prop] = normalizeColorTo0x(widgetProps[prop])
+            }
+          })
+
+          // Normalize colors in indicator object
+          if (widgetProps.indicator && typeof widgetProps.indicator === 'object') {
+            const indicatorColorProps = ['bg_color', 'border_color', 'arc_color']
+            indicatorColorProps.forEach(prop => {
+              if (widgetProps.indicator[prop] !== undefined) {
+                widgetProps.indicator[prop] = normalizeColorTo0x(widgetProps.indicator[prop])
+              }
+            })
+          }
+
+          // Normalize colors in knob object
+          if (widgetProps.knob && typeof widgetProps.knob === 'object') {
+            const knobColorProps = ['bg_color', 'border_color']
+            knobColorProps.forEach(prop => {
+              if (widgetProps.knob[prop] !== undefined) {
+                widgetProps.knob[prop] = normalizeColorTo0x(widgetProps.knob[prop])
+              }
+            })
+          }
 
           // Recursively process children for containers
           if (type === 'tabview' && Array.isArray(widgetProps.tabs)) {

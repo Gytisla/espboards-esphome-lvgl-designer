@@ -1,5 +1,6 @@
 import type { WidgetPlugin } from './types'
 import type { Widget } from '../types/widget'
+import { convertHexColorToLambda } from './utils'
 
 export const objWidget: WidgetPlugin = {
   type: 'obj',
@@ -47,18 +48,11 @@ export const objWidget: WidgetPlugin = {
   generateYAML(widget: Widget, indent: string = ''): string {
     const lines: string[] = []
     
-    lines.push(`${indent}obj:`)
-    
-    if (widget.x !== undefined) lines.push(`${indent}  x: ${widget.x}`)
-    if (widget.y !== undefined) lines.push(`${indent}  y: ${widget.y}`)
-    if (widget.width !== undefined) lines.push(`${indent}  width: ${widget.width}`)
-    if (widget.height !== undefined) lines.push(`${indent}  height: ${widget.height}`)
-    
     // Style properties
-    if (widget.bg_color) lines.push(`${indent}  bg_color: ${widget.bg_color}`)
-    if (widget.border_color) lines.push(`${indent}  border_color: ${widget.border_color}`)
-    if (widget.border_width !== undefined) lines.push(`${indent}  border_width: ${widget.border_width}`)
-    if (widget.radius !== undefined) lines.push(`${indent}  radius: ${widget.radius}`)
+    if (widget.bg_color) lines.push(`${indent}bg_color: ${convertHexColorToLambda(widget.bg_color)}`)
+    if (widget.border_color) lines.push(`${indent}border_color: ${convertHexColorToLambda(widget.border_color)}`)
+    if (widget.border_width !== undefined) lines.push(`${indent}border_width: ${widget.border_width}`)
+    if (widget.radius !== undefined) lines.push(`${indent}radius: ${widget.radius}`)
     
     return lines.join('\n')
   },

@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useDesignerStore } from '../stores/designer'
 import type { Widget } from '../types/widget'
 import { widgetIconMap } from '../types/widget'
+import { convertColorToCss } from '../widgets/utils'
 import Icon from './Icon.vue'
 
 const store = useDesignerStore()
@@ -10,6 +11,11 @@ const store = useDesignerStore()
 // Get active canvas tab
 const activeTab = computed(() => {
   return store.canvasTabs.find(tab => tab.id === store.activeCanvasTabId)
+})
+
+// Sort widgets by z-index for sidebar display (lowest z-index at top)
+const sortedWidgets = computed(() => {
+  return [...store.widgets].sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0))
 })
 
 // Vertical resizer functionality (between Elements and Properties)
@@ -653,6 +659,14 @@ function findWidgetById(widgetId: string, widgets: Widget[] = store.widgets): Wi
   return null
 }
 
+// Update z-index values based on current widget order
+// Lower index = lower z-index (rendered first, behind others)
+function updateZIndexAfterReorder() {
+  store.widgets.forEach((widget, index) => {
+    widget.zIndex = index
+  })
+}
+
 // Top-level widget drag handlers
 function handleWidgetDragStart(event: DragEvent, widget: Widget) {
   draggedItem.value = {
@@ -760,6 +774,8 @@ function handleWidgetDrop(event: DragEvent, targetWidget: Widget) {
     store.saveState()
   }
   
+  // Update z-index values to reflect new order
+  updateZIndexAfterReorder()
   draggedItem.value = null
 }
 
@@ -813,6 +829,8 @@ function handleRootDrop(event: DragEvent) {
     store.saveState()
   }
   
+  // Update z-index values to reflect new order
+  updateZIndexAfterReorder()
   draggedItem.value = null
 }
 
@@ -1332,7 +1350,7 @@ function getWidgetIcon(widget: Widget): string {
 
           <!-- Root widgets (shown as children of root) - only shown if there are widgets -->
           <ul v-if="store.widgetCount > 0" class="ml-2 space-y-1 border-l-2 border-gray-300 dark:border-gray-700 pl-2">
-            <li v-for="widget in store.widgets" :key="widget.id" class="relative">
+            <li v-for="widget in sortedWidgets" :key="widget.id" class="relative">
               <!-- Drop indicator line (shown when reordering) -->
               <div
                 v-if="dropIndicatorId === widget.id && isReordering && draggedItem?.type === 'widget'"
@@ -1919,7 +1937,7 @@ function getWidgetIcon(widget: Widget): string {
         </div>
 
         <!-- Colors Section -->
-        <div v-if="['button', 'label'].includes(store.selectedWidget.type)" class="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-3">
+        <div v-if="['button', 'label', 'obj'].includes(store.selectedWidget.type)" class="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-3">
           <div class="text-xs font-semibold text-gray-300 uppercase tracking-wider">Colors</div>
           
           <div v-if="'text_color' in store.selectedWidget || store.selectedWidget.type === 'button' || store.selectedWidget.type === 'label'">
@@ -1927,7 +1945,7 @@ function getWidgetIcon(widget: Widget): string {
             <div class="flex gap-2">
               <input
                 type="color"
-                :value="store.selectedWidget.text_color || '#ffffff'"
+                :value="convertColorToCss(store.selectedWidget.text_color) || '#ffffff'"
                 @input="handleInputChange('text_color', ($event.target as HTMLInputElement).value)"
                 @keydown="handleColorPickerKeydown"
                 class="w-10 h-9 rounded border border-gray-600 bg-gray-800 cursor-pointer"
@@ -1935,7 +1953,7 @@ function getWidgetIcon(widget: Widget): string {
               />
               <input
                 type="text"
-                :value="store.selectedWidget.text_color || '#ffffff'"
+                :value="convertColorToCss(store.selectedWidget.text_color) || '#ffffff'"
                 @input="handleInputChange('text_color', ($event.target as HTMLInputElement).value)"
                 placeholder="#ffffff"
                 class="flex-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono"
@@ -1948,7 +1966,7 @@ function getWidgetIcon(widget: Widget): string {
             <div class="flex gap-2">
               <input
                 type="color"
-                :value="store.selectedWidget.bg_color || '#4f46e5'"
+                :value="convertColorToCss(store.selectedWidget.bg_color) || '#4f46e5'"
                 @input="handleInputChange('bg_color', ($event.target as HTMLInputElement).value)"
                 @keydown="handleColorPickerKeydown"
                 class="w-10 h-9 rounded border border-gray-600 bg-gray-800 cursor-pointer"
@@ -1956,7 +1974,7 @@ function getWidgetIcon(widget: Widget): string {
               />
               <input
                 type="text"
-                :value="store.selectedWidget.bg_color || '#4f46e5'"
+                :value="convertColorToCss(store.selectedWidget.bg_color) || '#4f46e5'"
                 @input="handleInputChange('bg_color', ($event.target as HTMLInputElement).value)"
                 placeholder="#4f46e5"
                 class="flex-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono"
@@ -1995,7 +2013,54 @@ function getWidgetIcon(widget: Widget): string {
           </div>
         </div>
 
-        <!-- Text Align -->
+        <!-- Obj-specific properties -->
+        <div v-if="store.selectedWidget.type === 'obj'" class="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-3">
+          <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Border & Style</div>
+          
+          <div>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Border Color</label>
+            <div class="flex gap-2">
+              <input
+                type="color"
+                :value="convertColorToCss(store.selectedWidget.border_color) || '#4b5563'"
+                @input="handleInputChange('border_color', ($event.target as HTMLInputElement).value)"
+                @keydown="handleColorPickerKeydown"
+                class="w-10 h-9 rounded border border-gray-600 bg-gray-800 cursor-pointer"
+                title="Pick border color"
+              />
+              <input
+                type="text"
+                :value="convertColorToCss(store.selectedWidget.border_color) || '#4b5563'"
+                @input="handleInputChange('border_color', ($event.target as HTMLInputElement).value)"
+                placeholder="#4b5563"
+                class="flex-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Border Width (pixels)</label>
+            <input
+              type="number"
+              min="0"
+              :value="store.selectedWidget.border_width || 1"
+              @input="handleInputChange('border_width', Number(($event.target as HTMLInputElement).value))"
+              class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Corner Radius (pixels)</label>
+            <input
+              type="number"
+              min="0"
+              :value="store.selectedWidget.radius || 8"
+              @input="handleInputChange('radius', Number(($event.target as HTMLInputElement).value))"
+              class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+          </div>
+        </div>
+
         <div v-if="'text_align' in store.selectedWidget">
           <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Text Align</label>
           <select
@@ -2066,7 +2131,53 @@ function getWidgetIcon(widget: Widget): string {
           />
         </div>
 
-        <!-- Slider-specific properties -->
+        <!-- Bar Color Properties -->
+        <div v-if="store.selectedWidget.type === 'bar'" class="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-3">
+          <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Bar Colors</div>
+          
+          <div>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Background Color</label>
+            <div class="flex gap-2">
+              <input
+                type="color"
+                :value="convertColorToCss(store.selectedWidget.bg_color) || '#f0f0f0'"
+                @input="handleInputChange('bg_color', ($event.target as HTMLInputElement).value)"
+                @keydown="handleColorPickerKeydown"
+                class="w-10 h-9 rounded border border-gray-600 bg-gray-800 cursor-pointer"
+                title="Pick background color"
+              />
+              <input
+                type="text"
+                :value="convertColorToCss(store.selectedWidget.bg_color) || '#f0f0f0'"
+                @input="handleInputChange('bg_color', ($event.target as HTMLInputElement).value)"
+                placeholder="#f0f0f0"
+                class="flex-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Indicator Color</label>
+            <div class="flex gap-2">
+              <input
+                type="color"
+                :value="convertColorToCss(store.selectedWidget.indicator?.bg_color) || '#4f46e5'"
+                @input="handleIndicatorChange('bg_color', ($event.target as HTMLInputElement).value)"
+                @keydown="handleColorPickerKeydown"
+                class="w-10 h-9 rounded border border-gray-600 bg-gray-800 cursor-pointer"
+                title="Pick indicator color"
+              />
+              <input
+                type="text"
+                :value="convertColorToCss(store.selectedWidget.indicator?.bg_color) || '#4f46e5'"
+                @input="handleIndicatorChange('bg_color', ($event.target as HTMLInputElement).value)"
+                placeholder="#4f46e5"
+                class="flex-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono"
+              />
+            </div>
+          </div>
+        </div>
+
         <div v-if="store.selectedWidget.type === 'slider'" class="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-3">
           <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Slider Settings</div>
           
@@ -2135,14 +2246,14 @@ function getWidgetIcon(widget: Widget): string {
                 <div class="flex gap-2">
                   <input
                     type="color"
-                    :value="store.selectedWidget.knob?.border_color || '#6366F1'"
+                    :value="convertColorToCss(store.selectedWidget.knob?.border_color) || '#6366F1'"
                     @input="handleKnobChange('border_color', ($event.target as HTMLInputElement).value)"
                     @keydown="handleColorPickerKeydown"
                     class="w-10 h-9 rounded border border-gray-600 bg-gray-800 cursor-pointer"
                   />
                   <input
                     type="text"
-                    :value="store.selectedWidget.knob?.border_color || ''"
+                    :value="convertColorToCss(store.selectedWidget.knob?.border_color) || ''"
                     @input="handleKnobChange('border_color', ($event.target as HTMLInputElement).value)"
                     placeholder="Auto"
                     class="flex-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono"
@@ -2649,7 +2760,7 @@ function getWidgetIcon(widget: Widget): string {
                 <div class="flex gap-2">
                   <input
                     type="color"
-                    :value="store.selectedWidget.indicator?.border_color || (store.selectedWidget.checked ? '#4f46e5' : '#6b7280')"
+                    :value="convertColorToCss(store.selectedWidget.indicator?.border_color) || (store.selectedWidget.checked ? '#4f46e5' : '#6b7280')"
                     @input="handleIndicatorChange('border_color', ($event.target as HTMLInputElement).value)"
                     @keydown="handleColorPickerKeydown"
                     class="w-10 h-9 rounded border border-gray-600 bg-gray-800 cursor-pointer"
@@ -2657,7 +2768,7 @@ function getWidgetIcon(widget: Widget): string {
                   />
                   <input
                     type="text"
-                    :value="store.selectedWidget.indicator?.border_color || ''"
+                    :value="convertColorToCss(store.selectedWidget.indicator?.border_color) || ''"
                     @input="handleIndicatorChange('border_color', ($event.target as HTMLInputElement).value)"
                     placeholder="Auto"
                     class="flex-1 px-2 py-1.5 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono"

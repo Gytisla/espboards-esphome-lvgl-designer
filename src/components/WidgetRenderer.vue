@@ -2,6 +2,7 @@
 import type { Widget } from '../types/widget'
 import Icon from './Icon.vue'
 import { useDesignerStore } from '../stores/designer'
+import { convertColorToCss } from '../widgets/utils'
 import { ref } from 'vue'
 
 const store = useDesignerStore()
@@ -244,12 +245,10 @@ function getMaxRow(widget: Widget): number {
   return Math.max(...widget.tiles.map((t: any) => t.row), 0)
 }
 
-// Convert hex color (0xRRGGBB) to CSS color
+// Convert hex color (0xRRGGBB, #RRGGBB, or decimal) to CSS color
 function hexToColor(hex: string | number | undefined): string {
   if (!hex) return 'currentColor'
-  const hexStr = typeof hex === 'number' ? hex.toString(16).padStart(6, '0') : hex.toString()
-  const cleaned = hexStr.replace('0x', '').padStart(6, '0')
-  return `#${cleaned}`
+  return convertColorToCss(hex)
 }
 
 // Get arc indicator color
@@ -491,23 +490,32 @@ function getKeyboardRow3Keys(mode: string): string[] {
 
   <!-- Bar Widget -->
   <div v-else-if="widget.type === 'bar'" class="w-full h-full flex items-center p-1">
-    <div class="w-full h-3 bg-gray-700 rounded-full overflow-hidden relative">
+    <div class="w-full h-3 rounded-full overflow-hidden relative" :style="{ backgroundColor: convertColorToCss(widget.bg_color) || '#e5e7eb' }">
       <!-- NORMAL mode: from min to value -->
       <div v-if="!widget.mode || widget.mode === 'NORMAL'"
-        class="h-full bg-indigo-500 rounded-full transition-all absolute left-0"
-        :style="{ width: getBarFillWidth(widget) + 'px' }"
+        class="h-full rounded-full transition-all absolute left-0"
+        :style="{ 
+          width: getBarFillWidth(widget) + 'px',
+          backgroundColor: convertColorToCss(widget.indicator?.bg_color) || '#4f46e5'
+        }"
       ></div>
       
       <!-- RANGE mode: from start_value to value -->
       <div v-else-if="widget.mode === 'RANGE'"
-        class="h-full bg-indigo-500 rounded-full transition-all absolute"
-        :style="getBarRangeFillStyle(widget)"
+        class="h-full rounded-full transition-all absolute"
+        :style="{
+          ...getBarRangeFillStyle(widget),
+          backgroundColor: convertColorToCss(widget.indicator?.bg_color) || '#4f46e5'
+        }"
       ></div>
       
       <!-- SYMMETRICAL mode: from middle point (centered) to value -->
       <div v-else-if="widget.mode === 'SYMMETRICAL'"
-        class="h-full bg-indigo-500 rounded-full transition-all absolute"
-        :style="getBarSymmetricalFillStyle(widget)"
+        class="h-full rounded-full transition-all absolute"
+        :style="{
+          ...getBarSymmetricalFillStyle(widget),
+          backgroundColor: convertColorToCss(widget.indicator?.bg_color) || '#4f46e5'
+        }"
       ></div>
     </div>
   </div>
@@ -521,12 +529,12 @@ function getKeyboardRow3Keys(mode: string): string[] {
     ]"
     :style="{
       backgroundColor: widget.checked 
-        ? (widget.bg_color ? `color-mix(in srgb, ${widget.bg_color} 80%, black)` : '#3730a3')
-        : (widget.bg_color || '#4f46e5'),
+        ? (widget.bg_color ? `color-mix(in srgb, ${hexToColor(widget.bg_color)} 80%, black)` : '#3730a3')
+        : (hexToColor(widget.bg_color) || '#4f46e5'),
       borderColor: widget.checked
-        ? (widget.bg_color ? `color-mix(in srgb, ${widget.bg_color} 60%, black)` : '#312e81')
-        : (widget.bg_color ? widget.bg_color : '#818cf8'),
-      color: widget.text_color || '#ffffff',
+        ? (widget.bg_color ? `color-mix(in srgb, ${hexToColor(widget.bg_color)} 60%, black)` : '#312e81')
+        : (hexToColor(widget.bg_color) || '#818cf8'),
+      color: hexToColor(widget.text_color) || '#ffffff',
       transform: widget.checked ? 'scale(0.98)' : 'scale(1)'
     }"
   >
@@ -547,8 +555,8 @@ function getKeyboardRow3Keys(mode: string): string[] {
         height: `${Math.min(widget.width || 40, widget.height || 40) * 0.4}px`,
         borderWidth: widget.indicator?.border_width ? `${widget.indicator.border_width}px` : '2px',
         borderStyle: 'solid',
-        borderColor: widget.indicator?.border_color || (widget.checked ? '#4f46e5' : '#6b7280'),
-        backgroundColor: widget.checked ? (widget.indicator?.bg_color || '#4f46e5') : (widget.indicator?.bg_color || '#374151'),
+        borderColor: hexToColor(widget.indicator?.border_color) || (widget.checked ? '#4f46e5' : '#6b7280'),
+        backgroundColor: widget.checked ? (hexToColor(widget.indicator?.bg_color) || '#4f46e5') : (hexToColor(widget.indicator?.bg_color) || '#374151'),
         borderRadius: widget.indicator?.radius ? `${widget.indicator.radius}px` : '4px',
         opacity: widget.indicator?.bg_opa ? widget.indicator.bg_opa / 100 : 1
       }"
@@ -559,7 +567,7 @@ function getKeyboardRow3Keys(mode: string): string[] {
     <span 
       class="font-medium text-sm truncate"
       :style="{
-        color: widget.text_color || '#ffffff',
+        color: hexToColor(widget.text_color) || '#ffffff',
         opacity: widget.text_opa ? widget.text_opa / 100 : 1
       }"
     >
@@ -588,7 +596,7 @@ function getKeyboardRow3Keys(mode: string): string[] {
         class="absolute h-full rounded-full"
         :style="{ 
           width: getSliderKnobPosition(widget) + 'px',
-          backgroundColor: widget.indicator?.bg_color || '#4f46e5',
+          backgroundColor: hexToColor(widget.indicator?.bg_color) || '#4f46e5',
           opacity: (widget.indicator?.bg_opa ?? 255) / 255
         }"
       ></div>
@@ -599,8 +607,8 @@ function getKeyboardRow3Keys(mode: string): string[] {
           left: (getSliderKnobPosition(widget) - 8) + 'px',
           width: '1rem',
           height: '1rem',
-          backgroundColor: widget.knob?.bg_color || '#ffffff',
-          borderColor: widget.knob?.border_color || '#4f46e5',
+          backgroundColor: hexToColor(widget.knob?.bg_color) || '#ffffff',
+          borderColor: hexToColor(widget.knob?.border_color) || '#4f46e5',
           borderRadius: `${widget.knob?.radius ?? 9999}px`,
           opacity: (widget.knob?.bg_opa ?? 255) / 255
         }"
@@ -613,7 +621,7 @@ function getKeyboardRow3Keys(mode: string): string[] {
     v-else-if="widget.type === 'label'" 
     class="w-full h-full flex items-center px-2 text-xs truncate"
     :style="{
-      color: widget.text_color || '#e5e7eb'
+      color: hexToColor(widget.text_color) || '#e5e7eb'
     }"
   >
     {{ widget.text || 'Label' }}
@@ -624,15 +632,15 @@ function getKeyboardRow3Keys(mode: string): string[] {
     <div 
       class="w-full h-full transition-all shadow-lg"
       :style="{
-        backgroundColor: widget.color || '#FF0000',
+        backgroundColor: hexToColor(widget.color) || '#FF0000',
         opacity: (widget.brightness || 100) / 100,
         borderRadius: widget.radius !== undefined ? `${widget.radius}px` : '50%',
         borderWidth: widget.border_width ? `${widget.border_width}px` : '0',
         borderStyle: 'solid',
-        borderColor: widget.border_color || 'transparent',
+        borderColor: hexToColor(widget.border_color) || 'transparent',
         boxShadow: widget.shadow_width 
-          ? `0 0 ${widget.shadow_width}px ${widget.shadow_color || widget.color || '#FF0000'}`
-          : `0 0 10px ${widget.color || '#FF0000'}80`
+          ? `0 0 ${widget.shadow_width}px ${hexToColor(widget.shadow_color) || hexToColor(widget.color) || '#FF0000'}`
+          : `0 0 10px ${hexToColor(widget.color) || '#FF0000'}80`
       }"
     ></div>
   </div>
@@ -642,10 +650,10 @@ function getKeyboardRow3Keys(mode: string): string[] {
     <div class="relative bg-white rounded shadow-sm" :style="{ 
       width: `${widget.qr_size || 100}px`,
       height: `${widget.qr_size || 100}px`,
-      backgroundColor: widget.light_color || '#FFFFFF',
+      backgroundColor: hexToColor(widget.light_color) || '#FFFFFF',
       borderWidth: widget.border_width ? `${widget.border_width}px` : '0',
       borderStyle: 'solid',
-      borderColor: widget.border_color || 'transparent',
+      borderColor: hexToColor(widget.border_color) || 'transparent',
       borderRadius: widget.radius ? `${widget.radius}px` : '0',
       padding: widget.pad_all ? `${widget.pad_all}px` : '8px'
     }">
@@ -656,8 +664,8 @@ function getKeyboardRow3Keys(mode: string): string[] {
             class="w-full h-full"
             :style="{ 
               backgroundColor: (i % 3 === 0 || i === 1 || i === 8 || i === 57 || i === 64) 
-                ? (widget.dark_color || '#000000') 
-                : (widget.light_color || '#FFFFFF')
+                ? (hexToColor(widget.dark_color) || '#000000') 
+                : (hexToColor(widget.light_color) || '#FFFFFF')
             }"
           ></div>
         </div>
@@ -676,8 +684,8 @@ function getKeyboardRow3Keys(mode: string): string[] {
     v-else-if="widget.type === 'obj'" 
     class="w-full h-full"
     :style="{
-      backgroundColor: widget.bg_color || '#4f46e5',
-      borderColor: widget.border_color || '#4b5563',
+      backgroundColor: hexToColor(widget.bg_color) || '#4f46e5',
+      borderColor: hexToColor(widget.border_color) || '#4b5563',
       borderWidth: widget.border_width ? `${widget.border_width}px` : '1px',
       borderStyle: 'solid',
       borderRadius: widget.radius ? `${widget.radius}px` : '8px',
@@ -723,10 +731,10 @@ function getKeyboardRow3Keys(mode: string): string[] {
     data-interactive="true"
     class="w-full h-full flex flex-col items-center justify-center overflow-hidden rounded pointer-events-auto"
     :style="{
-      backgroundColor: widget.bg_color || '#374151',
+      backgroundColor: hexToColor(widget.bg_color) || '#374151',
       borderWidth: widget.border_width ? `${widget.border_width}px` : '1px',
       borderStyle: 'solid',
-      borderColor: widget.border_color || '#4B5563',
+      borderColor: hexToColor(widget.border_color) || '#4B5563',
       borderRadius: widget.radius ? `${widget.radius}px` : '0.25rem',
       cursor: props.isPreview ? 'pointer' : 'default'
     }"
@@ -857,7 +865,7 @@ function getKeyboardRow3Keys(mode: string): string[] {
   <!-- Spinner Widget -->
   <div v-else-if="widget.type === 'spinner'" class="w-full h-full flex items-center justify-center relative"
     :style="{
-      backgroundColor: widget.bg_color || 'transparent',
+      backgroundColor: hexToColor(widget.bg_color) || 'transparent',
       opacity: widget.bg_opa !== undefined ? widget.bg_opa / 100 : 1
     }">
     <!-- SVG Spinner -->
@@ -872,7 +880,7 @@ function getKeyboardRow3Keys(mode: string): string[] {
         cy="50"
         :r="45 - (widget.arc_width || 8) / 2"
         fill="none"
-        :stroke="widget.bg_color || '#4B5563'"
+        :stroke="hexToColor(widget.bg_color) || '#4B5563'"
         :stroke-width="widget.arc_width || 8"
         opacity="0.2"
       />
@@ -882,7 +890,7 @@ function getKeyboardRow3Keys(mode: string): string[] {
         cy="50"
         :r="45 - (widget.arc_width || 8) / 2"
         fill="none"
-        :stroke="widget.indicator?.arc_color || widget.arc_color || '#818CF8'"
+        :stroke="hexToColor(widget.indicator?.arc_color || widget.arc_color) || '#818CF8'"
         :stroke-width="widget.indicator?.arc_width || widget.arc_width || 8"
         :stroke-opacity="(widget.indicator?.arc_opa || widget.arc_opa || 100) / 100"
         :stroke-linecap="widget.arc_rounded ? 'round' : 'butt'"
@@ -897,12 +905,12 @@ function getKeyboardRow3Keys(mode: string): string[] {
     data-interactive="true"
     class="w-full h-full flex items-center justify-center px-2 rounded relative overflow-hidden"
     :style="{
-      backgroundColor: widget.bg_color || '#374151',
+      backgroundColor: hexToColor(widget.bg_color) || '#374151',
       borderWidth: widget.border_width ? `${widget.border_width}px` : '1px',
       borderStyle: 'solid',
-      borderColor: widget.border_color || '#4B5563',
+      borderColor: hexToColor(widget.border_color) || '#4B5563',
       borderRadius: widget.radius ? `${widget.radius}px` : '0.25rem',
-      color: widget.text_color || '#D1D5DB',
+      color: hexToColor(widget.text_color) || '#D1D5DB',
       cursor: props.isPreview ? 'grab' : 'default'
     }"
     @wheel.prevent.stop="(event: WheelEvent) => {
@@ -975,9 +983,9 @@ function getKeyboardRow3Keys(mode: string): string[] {
       'ring-2 ring-green-400 border-green-400': props.hoveredDropTargetId === widget.id
     }"
     :style="{
-      backgroundColor: widget.bg_color || '#1e293b',
+      backgroundColor: hexToColor(widget.bg_color) || '#1e293b',
       opacity: (widget.bg_opa || 100) / 100,
-      borderColor: props.hoveredDropTargetId === widget.id ? '#4ade80' : (widget.border_color || '#475569'),
+      borderColor: props.hoveredDropTargetId === widget.id ? '#4ade80' : (hexToColor(widget.border_color) || '#475569'),
       borderWidth: `${widget.border_width || 1}px`,
       borderRadius: `${widget.radius || 4}px`,
       padding: `${widget.pad_all || 4}px`

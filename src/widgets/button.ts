@@ -1,6 +1,6 @@
 import type { WidgetPlugin } from './types'
 import type { Widget } from '../types/widget'
-import { convertHexColor } from './utils'
+import { convertHexColorToLambda } from './utils'
 
 export const buttonWidget: WidgetPlugin = {
   type: 'button',
@@ -63,7 +63,7 @@ export const buttonWidget: WidgetPlugin = {
     
     // Button styles
     if (widget.bg_color) {
-      const bgColor = convertHexColor(widget.bg_color)
+      const bgColor = convertHexColorToLambda(widget.bg_color)
       yaml += `${indent}bg_color: ${bgColor}\n`
     }
     
@@ -85,7 +85,7 @@ export const buttonWidget: WidgetPlugin = {
       yaml += `${indent}      align: ${widget.align || 'center'}\n`
       yaml += `${indent}      text: "${widget.text}"\n`
       if (widget.text_color) {
-        const textColor = convertHexColor(widget.text_color)
+        const textColor = convertHexColorToLambda(widget.text_color)
         yaml += `${indent}      text_color: ${textColor}\n`
       }
     }

@@ -4,6 +4,7 @@ import { useDesignerStore } from '../stores/designer'
 import type { Widget } from '../types/widget'
 import WidgetRenderer from './WidgetRenderer.vue'
 import Icon from './Icon.vue'
+import { convertColorToCss } from '../widgets/utils'
 
 const store = useDesignerStore()
 

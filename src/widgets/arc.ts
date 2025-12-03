@@ -1,6 +1,6 @@
 import type { WidgetPlugin, PropertyGroup } from './types'
 import type { Widget } from '../types/widget'
-import { convertHexColor } from './utils'
+import { convertHexColorToLambda } from './utils'
 
 export const arcWidget: WidgetPlugin = {
   type: 'arc',
@@ -167,7 +167,7 @@ export const arcWidget: WidgetPlugin = {
     
     // Background arc properties
     if (widget.arc_color) {
-      const arcColor = convertHexColor(widget.arc_color)
+      const arcColor = convertHexColorToLambda(widget.arc_color)
       yaml += `${indent}arc_color: ${arcColor}\n`
     }
     if (widget.arc_width) yaml += `${indent}arc_width: ${widget.arc_width}\n`
@@ -178,7 +178,7 @@ export const arcWidget: WidgetPlugin = {
     if (widget.indicator) {
       yaml += `${indent}indicator:\n`
       if (widget.indicator.arc_color) {
-        const indicatorColor = convertHexColor(widget.indicator.arc_color)
+        const indicatorColor = convertHexColorToLambda(widget.indicator.arc_color)
         yaml += `${indent}  arc_color: ${indicatorColor}\n`
       }
       if (widget.indicator.arc_width) yaml += `${indent}  arc_width: ${widget.indicator.arc_width}\n`
@@ -187,12 +187,12 @@ export const arcWidget: WidgetPlugin = {
       
       if (widget.indicator.pressed?.arc_color) {
         yaml += `${indent}  pressed:\n`
-        const pressedColor = convertHexColor(widget.indicator.pressed.arc_color)
+        const pressedColor = convertHexColorToLambda(widget.indicator.pressed.arc_color)
         yaml += `${indent}    arc_color: ${pressedColor}\n`
       }
       if (widget.indicator.focused?.arc_color) {
         yaml += `${indent}  focused:\n`
-        const focusedColor = convertHexColor(widget.indicator.focused.arc_color)
+        const focusedColor = convertHexColorToLambda(widget.indicator.focused.arc_color)
         yaml += `${indent}    arc_color: ${focusedColor}\n`
       }
     }
@@ -201,7 +201,7 @@ export const arcWidget: WidgetPlugin = {
     if (widget.knob) {
       yaml += `${indent}knob:\n`
       if (widget.knob.bg_color) {
-        const knobColor = convertHexColor(widget.knob.bg_color)
+        const knobColor = convertHexColorToLambda(widget.knob.bg_color)
         yaml += `${indent}  bg_color: ${knobColor}\n`
       }
       if (widget.knob.radius) yaml += `${indent}  radius: ${widget.knob.radius}\n`

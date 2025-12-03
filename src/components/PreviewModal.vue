@@ -4,6 +4,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import Icon from './Icon.vue'
 import WidgetRenderer from './WidgetRenderer.vue'
 import TabviewPreviewRenderer from './TabviewPreviewRenderer.vue'
+import { convertColorToCss } from '../widgets/utils'
 import type { Widget } from '../types/widget'
 
 const store = useDesignerStore()
