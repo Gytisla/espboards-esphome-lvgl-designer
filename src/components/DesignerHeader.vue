@@ -5,6 +5,7 @@ import Icon from './Icon.vue'
 
 const store = useDesignerStore()
 const showAboutModal = ref(false)
+const showHelpDropdown = ref(false)
 </script>
 
 <template>
@@ -54,8 +55,9 @@ const showAboutModal = ref(false)
       </button>
       
       <!-- Help Menu (Shortcuts + About) -->
-      <div class="relative group">
+      <div class="relative">
         <button
+          @click="showHelpDropdown = !showHelpDropdown"
           class="px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors flex items-center gap-1.5"
           title="Help & Information"
         >
@@ -64,9 +66,10 @@ const showAboutModal = ref(false)
         </button>
         
         <!-- Dropdown Menu -->
-        <div class="absolute right-0 mt-0 w-48 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+        <div v-if="showHelpDropdown" class="absolute right-0 mt-0 w-48 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
           <router-link
             to="/help/overview"
+            @click="showHelpDropdown = false"
             class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2 rounded-t-lg transition-colors"
           >
             <Icon icon="book-open" size="16" />
@@ -74,7 +77,7 @@ const showAboutModal = ref(false)
           </router-link>
           
           <button
-            @click="store.showShortcutsModal = true"
+            @click="() => { store.showShortcutsModal = true; showHelpDropdown = false }"
             class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2 transition-colors"
           >
             <Icon icon="keyboard" size="16" />
@@ -82,7 +85,7 @@ const showAboutModal = ref(false)
           </button>
           
           <button
-            @click="showAboutModal = true"
+            @click="() => { showAboutModal = true; showHelpDropdown = false }"
             class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2 transition-colors"
           >
             <Icon icon="information" size="16" />
