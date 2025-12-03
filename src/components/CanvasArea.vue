@@ -1191,6 +1191,15 @@ function getWidgetStyle(widget: Widget) {
         <Icon :icon="isPanLocked ? 'lock' : 'lock-open-variant'" size="16" />
       </button>
       
+      <!-- Help Button -->
+      <router-link
+        to="/help/overview"
+        class="absolute bottom-4 left-4 z-40 p-2 bg-white dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 rounded shadow-lg border border-gray-200 dark:border-gray-700 text-indigo-600 dark:text-indigo-400 transition-colors"
+        title="Open help (Ctrl+H)"
+      >
+        <Icon icon="help-circle" size="18" />
+      </router-link>
+      
       <!-- Zoom Controls -->
       <div class="absolute bottom-4 right-4 flex gap-0.5 z-40 bg-white dark:bg-gray-900 rounded p-0.5 shadow-lg border border-gray-200 dark:border-gray-700">
         <button

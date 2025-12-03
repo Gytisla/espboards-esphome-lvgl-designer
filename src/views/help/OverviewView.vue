@@ -8,6 +8,41 @@
     </div>
 
     <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
+      <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">🎬 See It In Action</h3>
+      <p class="text-gray-600 dark:text-gray-300 mb-4">
+        Check out real-world examples of designs created with this tool running on actual ESP32 devices:
+      </p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div class="relative overflow-hidden rounded-lg shadow-md border border-gray-300 dark:border-gray-600">
+          <img 
+            src="/img/design-in-designer.png" 
+            alt="Design in designer"
+            class="w-full h-auto"
+          />
+          <div class="absolute inset-0 bg-linear-to-t from-black/60 to-transparent flex items-end p-3">
+            <p class="text-white text-sm font-medium">Design in Editor</p>
+          </div>
+        </div>
+        <div class="relative overflow-hidden rounded-lg shadow-md border border-gray-300 dark:border-gray-600">
+          <img 
+            src="/img/rendeder-on-esphome.jpeg" 
+            alt="Rendered on ESP32"
+            class="w-full h-auto"
+          />
+          <div class="absolute inset-0 bg-linear-to-t from-black/60 to-transparent flex items-end p-3">
+            <p class="text-white text-sm font-medium">Running on ESP32 Device</p>
+          </div>
+        </div>
+      </div>
+      <router-link 
+        to="/help/showcase" 
+        class="inline-flex items-center gap-2 text-indigo-600 dark:text-indigo-400 hover:underline font-semibold"
+      >
+        <span>View full design showcase →</span>
+      </router-link>
+    </div>
+
+    <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
       <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">What is LVGL?</h3>
       <p class="text-gray-600 dark:text-gray-300 mb-2">
         LVGL is a free and open-source embedded graphics library that provides a wide range of UI widgets, themes, and responsive design capabilities suitable for devices with limited resources.

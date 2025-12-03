@@ -30,6 +30,13 @@ const helpPages = [
     description: 'Complete guide to all features'
   },
   {
+    id: 'showcase',
+    title: 'Design Showcase',
+    icon: 'image',
+    path: '/help/showcase',
+    description: 'Real-world designs running on ESP32 devices'
+  },
+  {
     id: 'keyboard-shortcuts',
     title: 'Keyboard Shortcuts',
     icon: 'keyboard',

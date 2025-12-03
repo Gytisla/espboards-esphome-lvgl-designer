@@ -9,6 +9,7 @@ import FAQView from '../views/help/FAQView.vue'
 import IssuesView from '../views/help/IssuesView.vue'
 import TroubleshootingView from '../views/help/TroubleshootingView.vue'
 import WidgetSupportView from '../views/help/WidgetSupportView.vue'
+import ShowcaseView from '../views/help/ShowcaseView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -70,6 +71,11 @@ const router = createRouter({
           path: 'widget-support',
           name: 'help-widget-support',
           component: WidgetSupportView,
+        },
+        {
+          path: 'showcase',
+          name: 'help-showcase',
+          component: ShowcaseView,
         },
       ],
     },
