@@ -14,7 +14,7 @@
           All issues are tracked on GitHub. Click the button below to visit the repository:
         </p>
         <a
-          href="https://github.com/Gytisla/espboards-esphome-lvgl-designer/issues"
+          href="https://github.com/ESPBoards/esphope-lvgl-ui-builder/issues"
           target="_blank"
           rel="noopener noreferrer"
           class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors font-semibold"
